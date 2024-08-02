@@ -30,14 +30,39 @@ class BaseService {
     }
   }
 
-  protected async installPackages(projectDir: string, packages: string[], mode: string = ''): Promise<void> {
+  protected async installPackages(projectDir: string, packages: string[], isDevDependency: boolean = false, packageManager: 'npm' | 'yarn' | 'bun' = 'npm'): Promise<void> {
     if (packages.length > 0) {
-      const installCommand = `npm install ${mode} ${packages.join(' ')}`
+      let installCommand: string
+
+      switch (packageManager) {
+        case 'yarn':
+          installCommand = `yarn add ${isDevDependency ? '--dev' : ''} ${packages.join(' ')}`
+          break
+        case 'bun':
+          installCommand = `bun add ${isDevDependency ? '-d' : ''} ${packages.join(' ')}`
+          break
+        case 'npm':
+        default:
+          installCommand = `npm install ${isDevDependency ? '--save-dev' : ''} ${packages.join(' ')}`
+          break
+      }
+
       await execPromise(installCommand, { cwd: projectDir })
       console.log(chalk.green('✅ Packages installed successfully.'))
     } else {
       console.log(chalk.yellow('ℹ️  No new packages to install.'))
     }
+  }
+
+  private detectPackageManager(projectDir: string): 'npm' | 'yarn' | 'bun' {
+    if (fs.existsSync(path.join(projectDir, 'yarn.lock'))) {
+      return 'yarn'
+    }
+    if (fs.existsSync(path.join(projectDir, 'bun.lockb'))) {
+      return 'bun'
+    }
+
+    return 'npm'
   }
 
   protected async handlePackages(projectDir: string, packages: {
@@ -46,6 +71,7 @@ class BaseService {
   }): Promise<void> {
     const packageJsonPath = path.join(projectDir, 'package.json')
     const packageJson = await fs.readJSON(packageJsonPath)
+    const packageManager = this.detectPackageManager(projectDir)
 
     let dependenciesToInstall: string[] = []
     let devDependenciesToInstall: string[] = []
@@ -62,8 +88,8 @@ class BaseService {
       }
     }
 
-    await this.installPackages(projectDir, dependenciesToInstall, '--save')
-    await this.installPackages(projectDir, devDependenciesToInstall, '--save-dev')
+    await this.installPackages(projectDir, dependenciesToInstall, false, packageManager)
+    await this.installPackages(projectDir, devDependenciesToInstall, true, packageManager)
   }
 
   protected async pushStoryblokComponent(projectDir: string, definitionFile: string): Promise<void> {
