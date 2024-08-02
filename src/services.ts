@@ -269,6 +269,7 @@ class Service {
   }
 
   async logout() {
+    await this.api.logout()
     credentials.clear()
   }
 }
