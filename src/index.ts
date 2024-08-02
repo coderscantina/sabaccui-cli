@@ -87,14 +87,18 @@ program.command('templates')
   .description('List all available templates')
   .action(async () => {
     const result = await (new TemplateService()).list()
-    console.table(result)
+    if (result) {
+      console.table(result)
+    }
   })
 
 program.command('components')
   .description('List all available components')
   .action(async (key) => {
     const result = await (new ComponentService()).list()
-    console.table(result)
+    if (result) {
+      console.table(result)
+    }
   })
 
 program.command('add')

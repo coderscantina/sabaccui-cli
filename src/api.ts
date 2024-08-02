@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import chalk from 'chalk'
 
 const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://ui.coderscantina.com'
 
@@ -25,6 +26,7 @@ function getHeaders() {
 
   return {
     'Content-Type': 'application/json',
+    'accept': 'application/json',
     'Authorization': `Bearer ${token}`,
     'User-Agent': `sabaccui-cli/${pkg.version}`
   }
@@ -47,12 +49,6 @@ async function handleError(response: Response, type: string = null, key: string 
 }
 
 class API {
-  private headers: Record<string, string>
-
-  constructor() {
-    this.headers = getHeaders()
-  }
-
   async login(input: LoginPayload) {
     const response = await fetch(`${DOMAIN}/auth/v1/token`, {
       method: 'POST',
@@ -69,9 +65,27 @@ class API {
     return data
   }
 
+  async logout() {
+    const response = await fetch(`${DOMAIN}/auth/v1/token`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ _method: 'DELETE' })
+    })
+
+
+    try {
+      await handleError(response)
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message)
+      return false
+    }
+
+    return true
+  }
+
   async getComponents() {
     const response = await fetch(`${DOMAIN}/api/v1/components`, {
-      headers: this.headers
+      headers: getHeaders()
     })
 
     await handleError(response)
@@ -82,7 +96,7 @@ class API {
 
   async downloadComponent(key: string): Promise<Buffer> {
     const response = await fetch(`${DOMAIN}/api/v1/components/${key}/download`, {
-      headers: this.headers
+      headers: getHeaders()
     })
 
     await handleError(response, 'Component', key)
@@ -93,7 +107,7 @@ class API {
 
   async getTemplates() {
     const response = await fetch(`${DOMAIN}/api/v1/templates`, {
-      headers: this.headers
+      headers: getHeaders()
     })
 
     await handleError(response)
@@ -104,7 +118,7 @@ class API {
 
   async downloadTemplate(key: string): Promise<Buffer> {
     const response = await fetch(`${DOMAIN}/api/v1/templates/${key}/download`, {
-      headers: this.headers
+      headers: getHeaders()
     })
 
     await handleError(response, 'Template', key)
