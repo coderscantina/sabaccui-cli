@@ -1,4 +1,3 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios'
 import credentials from './utils/credentials'
 import { ComponentListResponse, LoginPayload, TemplateListResponse, TokenResponse } from './types'
 
@@ -13,89 +12,93 @@ function getToken() {
   return creds.token
 }
 
-function getClient() {
+function getHeaders() {
   const token = getToken()
 
-  return axios.create({
-    baseURL: DOMAIN,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    }
-  })
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  }
 }
 
-function handleError(error: any, type: string = null, key: string = null) {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.status === 401) {
+async function handleError(response: Response, type: string = null, key: string = null) {
+  if (!response.ok) {
+    if (response.status === 401) {
       throw new Error('Authentication failed. Please check your Login.')
-    } else if (error.response?.status === 404) {
+    } else if (response.status === 404) {
       if (type && key) {
         throw new Error(`${type} with key "${key}" not found.`)
       }
       throw new Error('Resource not found.')
     } else {
-      throw new Error(`API error: ${error.response?.statusText || error.message}`)
+      const errorText = await response.text()
+      throw new Error(`API error: ${response.statusText || errorText}`)
     }
-  } else {
-    throw new Error('An unexpected error occurred while downloading the component.')
   }
 }
 
 class API {
-  private client: AxiosInstance
+  private headers: Record<string, string>
 
   constructor() {
-    this.client = getClient()
+    this.headers = getHeaders()
   }
 
   async login(input: LoginPayload) {
-    try {
-      const response: AxiosResponse<TokenResponse> = await axios.post('http://ui.coderscantina.test/auth/v1/token', input)
-      const { data } = response
+    const response = await fetch(`${DOMAIN}/auth/v1/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    })
 
-      return data
-    } catch (error) {
-      handleError(error)
-    }
+    await handleError(response)
+
+    const data: TokenResponse = await response.json()
+    return data
   }
 
   async getComponents() {
-    try {
-      const { data }: AxiosResponse<ComponentListResponse> = await this.client.get('/api/v1/components')
+    const response = await fetch(`${DOMAIN}/api/v1/components`, {
+      headers: this.headers
+    })
 
-      return data
-    } catch (error) {
-      handleError(error)
-    }
+    await handleError(response)
+
+    const data: ComponentListResponse = await response.json()
+    return data
   }
 
   async downloadComponent(key: string): Promise<Buffer> {
-    try {
-      const response: AxiosResponse<ArrayBuffer> = await this.client.get(`/api/v1/components/${key}/download`, {
-        responseType: 'arraybuffer',
-      })
-      return Buffer.from(response.data)
-    } catch (error) {
-      handleError(error, 'Component', key)
-    }
+    const response = await fetch(`${DOMAIN}/api/v1/components/${key}/download`, {
+      headers: this.headers
+    })
+
+    await handleError(response, 'Component', key)
+
+    const arrayBuffer = await response.arrayBuffer()
+    return Buffer.from(arrayBuffer)
   }
 
   async getTemplates() {
-    const { data }: AxiosResponse<TemplateListResponse> = await this.client.get('/api/v1/templates')
+    const response = await fetch(`${DOMAIN}/api/v1/templates`, {
+      headers: this.headers
+    })
 
+    await handleError(response)
+
+    const data: TemplateListResponse = await response.json()
     return data
   }
 
   async downloadTemplate(key: string): Promise<Buffer> {
-    try {
-      const response: AxiosResponse<ArrayBuffer> = await this.client.get(`/api/v1/templates/${key}/download`, {
-        responseType: 'arraybuffer',
-      })
-      return Buffer.from(response.data)
-    } catch (error) {
-      handleError(error, 'Template', key)
-    }
+    const response = await fetch(`${DOMAIN}/api/v1/templates/${key}/download`, {
+      headers: this.headers
+    })
+
+    await handleError(response, 'Template', key)
+
+    const arrayBuffer = await response.arrayBuffer()
+    return Buffer.from(arrayBuffer)
   }
 }
 
