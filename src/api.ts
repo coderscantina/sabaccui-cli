@@ -1,7 +1,15 @@
 import credentials from './utils/credentials'
 import { ComponentListResponse, LoginPayload, TemplateListResponse, TokenResponse } from './types'
+import fs from 'fs'
+import path from 'path'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://ui.coderscantina.com'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
+const pkg = JSON.parse(rawPkg.toString())
 
 function getToken() {
   const creds = credentials.get()
@@ -17,7 +25,8 @@ function getHeaders() {
 
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${token}`,
+    'User-Agent': `sabaccui-cli/${pkg.version}`
   }
 }
 
@@ -47,7 +56,10 @@ class API {
   async login(input: LoginPayload) {
     const response = await fetch(`${DOMAIN}/auth/v1/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': `sabaccui-cli/${pkg.version}`
+      },
       body: JSON.stringify(input)
     })
 
