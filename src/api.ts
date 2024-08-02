@@ -1,7 +1,7 @@
 import credentials from './utils/credentials'
 import { ComponentListResponse, LoginPayload, TemplateListResponse, TokenResponse } from './types'
 
-const DOMAIN = 'http://ui.coderscantina.test'
+const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://ui.coderscantina.com'
 
 function getToken() {
   const creds = credentials.get()
