@@ -30,34 +30,40 @@ class BaseService {
     }
   }
 
-  protected async installPackages(projectDir: string, packages: {
+  protected async installPackages(projectDir: string, packages: string[], mode: string = ''): Promise<void> {
+    if (packages.length > 0) {
+      const installCommand = `npm install ${mode} ${packages.join(' ')}`
+      await execPromise(installCommand, { cwd: projectDir })
+      console.log(chalk.green('✅ Packages installed successfully.'))
+    } else {
+      console.log(chalk.yellow('ℹ️  No new packages to install.'))
+    }
+  }
+
+  protected async handlePackages(projectDir: string, packages: {
     dependencies?: Record<string, string>,
     devDependencies?: Record<string, string>
   }): Promise<void> {
     const packageJsonPath = path.join(projectDir, 'package.json')
     const packageJson = await fs.readJSON(packageJsonPath)
 
-    let packagesToInstall: string[] = []
+    let dependenciesToInstall: string[] = []
+    let devDependenciesToInstall: string[] = []
 
     for (const [name, version] of Object.entries(packages.dependencies || {})) {
       if (!packageJson.dependencies[name]) {
-        packagesToInstall.push(`${name}@${version}`)
+        dependenciesToInstall.push(`${name}@${version}`)
       }
     }
 
     for (const [name, version] of Object.entries(packages.devDependencies || {})) {
       if (!packageJson.devDependencies[name]) {
-        packagesToInstall.push(`${name}@${version}`)
+        devDependenciesToInstall.push(`${name}@${version}`)
       }
     }
 
-    if (packagesToInstall.length > 0) {
-      const installCommand = `npm install ${packagesToInstall.join(' ')}`
-      await execPromise(installCommand, { cwd: projectDir })
-      console.log(chalk.green('✅ Packages installed successfully.'))
-    } else {
-      console.log(chalk.yellow('ℹ️  No new packages to install.'))
-    }
+    await this.installPackages(projectDir, dependenciesToInstall, '--save')
+    await this.installPackages(projectDir, devDependenciesToInstall, '--save-dev')
   }
 
   protected async pushStoryblokComponent(projectDir: string, definitionFile: string): Promise<void> {
@@ -111,7 +117,7 @@ class ComponentService extends BaseService {
 
       if (manifest.packages) {
         this.output(chalk.blue('📦 Installing packages...'))
-        await this.installPackages(projectDir, manifest.packages)
+        await this.handlePackages(projectDir, manifest.packages)
       }
 
       if (manifest.storyblokDefinition) {
@@ -186,7 +192,7 @@ class TemplateService extends BaseService {
 
       if (manifest.packages) {
         console.log(chalk.blue('📦 Installing packages...'))
-        await this.installPackages(projectDir, manifest.packages)
+        await this.handlePackages(projectDir, manifest.packages)
       }
 
       if (manifest.migrations) {
