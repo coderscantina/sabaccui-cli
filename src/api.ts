@@ -32,10 +32,12 @@ function getHeaders() {
   }
 }
 
-async function handleError(response: Response, type: string = null, key: string = null) {
+async function handleError(response: Response, type: string | null = null, key: string | null = null) {
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Authentication failed. Please check your Login.')
+    } else if (response.status === 403) {
+      throw new Error('Access denied. Please check for a valid license.')
     } else if (response.status === 404) {
       if (type && key) {
         throw new Error(`${type} with key "${key}" not found.`)
@@ -76,7 +78,7 @@ class API {
     try {
       await handleError(response)
     } catch (error) {
-      console.error(chalk.red('❌ Error:'), error.message)
+      console.error(chalk.red('X'), error.message)
       return false
     }
 

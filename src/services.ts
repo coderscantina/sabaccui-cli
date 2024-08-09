@@ -20,7 +20,7 @@ class BaseService {
     this.api = new API()
   }
 
-  protected async copyFiles(sourceDir, targetDir, files) {
+  protected async copyFiles(sourceDir: string, targetDir: string, files: string[] | undefined): Promise<void> {
     for (const file of files || []) {
       const src = path.join(sourceDir, file)
       const dest = path.join(targetDir, file)
@@ -48,9 +48,9 @@ class BaseService {
       }
 
       await execPromise(installCommand, { cwd: projectDir })
-      console.log(chalk.green('✅ Packages installed successfully.'))
+      console.log(chalk.green('✓') + ' Packages installed successfully.')
     } else {
-      console.log(chalk.yellow('ℹ️  No new packages to install.'))
+      console.log(chalk.yellow('I') + ' No new packages to install.')
     }
   }
 
@@ -96,9 +96,9 @@ class BaseService {
     const storyblokCommand = `storyblok push-components ${definitionFile}`
     try {
       await execPromise(storyblokCommand, { cwd: projectDir })
-      console.log(chalk.green('✅ Storyblok component pushed successfully.'))
+      console.log(chalk.green('✓') + ' Storyblok component pushed successfully.')
     } catch (error) {
-      console.error(chalk.red('❌ Error pushing Storyblok component:'), error.message)
+      console.error(chalk.red('X') + ' Error pushing Storyblok component:', error.message)
     }
   }
 
@@ -113,7 +113,7 @@ class ComponentService extends BaseService {
       const { data } = await this.api.getComponents()
       return data
     } catch (error) {
-      console.error(chalk.red('❌ Error:'), error.message)
+      console.error(chalk.red('X'), error.message)
     }
   }
 
@@ -156,7 +156,7 @@ class ComponentService extends BaseService {
 
       this.output(chalk.green('✅ Component installed successfully!'))
     } catch (error) {
-      console.error(chalk.red('❌ Error:'), error.message)
+      console.error(chalk.red('X'), error.message)
     }
   }
 }
@@ -174,7 +174,7 @@ class TemplateService extends BaseService {
       const { data } = await this.api.getTemplates()
       return data
     } catch (error) {
-      console.error(chalk.red('❌ Error:'), error.message)
+      console.error(chalk.red('X'), error.message)
     }
   }
 
