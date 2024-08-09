@@ -6,7 +6,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
 
-const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://ui.coderscantina.com'
+const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://www.sabaccui.com'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))

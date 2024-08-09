@@ -3,7 +3,7 @@ import fs from 'fs'
 import netrc from 'netrc'
 import os from 'os'
 
-const host = 'ui.coderscantina.com'
+const host = 'sabaccui.com'
 
 const getFile = () => {
   const home = process.env[(/^win/.test(process.platform)) ? 'USERPROFILE' : 'HOME']

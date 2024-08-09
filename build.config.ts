@@ -20,6 +20,6 @@ export default defineBuildConfig({
     'node:os',
   ],
   replace: {
-    'process.env.SABACCUI_API_DOMAIN': JSON.stringify(process.env.SABACCUI_API_DOMAIN || 'https://ui.coderscantina.com')
+    'process.env.SABACCUI_API_DOMAIN': JSON.stringify(process.env.SABACCUI_API_DOMAIN || 'https://www.sabaccui.com')
   }
 })
