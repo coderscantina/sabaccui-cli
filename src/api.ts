@@ -44,8 +44,8 @@ async function handleError(response: Response, type: string | null = null, key: 
       }
       throw new Error('Resource not found.')
     } else {
-      const errorText = await response.text()
-      throw new Error(`API error: ${response.statusText || errorText}`)
+      const error = await response.json()
+      throw new Error(`API error: ${(error.error || response.statusText)}`)
     }
   }
 }
@@ -74,6 +74,23 @@ class API {
       body: JSON.stringify({ _method: 'DELETE' })
     })
 
+
+    try {
+      await handleError(response)
+    } catch (error) {
+      console.error(chalk.red('X'), error.message)
+      return false
+    }
+
+    return true
+  }
+
+  async license(key: string) {
+    const response = await fetch(`${DOMAIN}/api/v1/licenses/activate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ key })
+    })
 
     try {
       await handleError(response)
