@@ -272,6 +272,12 @@ class Service {
     await this.api.logout()
     credentials.clear()
   }
+
+  async license(input: { license: string }) {
+    const data = await this.api.license(input.license)
+
+    return data
+  }
 }
 
 export { Service, ComponentService, TemplateService }

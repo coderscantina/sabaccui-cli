@@ -65,6 +65,36 @@ program.command('login')
     }
   })
 
+program.command('license')
+  .description('Enter your license key')
+  .action(async () => {
+    const content = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'license',
+        message: 'License key:',
+        validate: function (value) {
+          if (value.length) {
+            return true
+          }
+          return 'Please enter a valid license key'
+        }
+      }
+    ])
+
+    if (await (new Service()).license(content)) {
+      console.log(chalk.green('✓') + ' License key stored successfully!')
+    } else {
+      console.error(chalk.red('X') + ' An error occurred when storing the license key')
+    }
+  })
+
+program.command('buy')
+  .description('Buy a license')
+  .action(() => {
+    console.log('Here is the link to buy a license: https://www.sabaccui.com')
+  })
+
 program.command('logout')
   .description('Logout of SabaccUI')
   .action(async () => {
