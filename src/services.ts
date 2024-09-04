@@ -167,10 +167,6 @@ class ComponentService extends BaseService {
         })
       }
 
-        this.output(chalk.blue('📦 Installing packages...'), silent)
-        await execPromise('bun install', { cwd: projectDir })
-        this.output(chalk.green('✅ Packages installed successfully.'), silent)
-
       this.output(chalk.blue('🧹 Cleaning up...'), silent)
       await fs.remove(tempDir)
 
@@ -292,7 +288,6 @@ class TemplateService extends BaseService {
       if (manifest.packages) {
         await this.handlePackages(projectDir, manifest.packages)
       } else {
-
         await execPromise('bun install', { cwd: projectDir })
       }
       this.output(chalk.green('✅ Packages installed successfully.'))
