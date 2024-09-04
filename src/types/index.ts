@@ -40,4 +40,5 @@ export interface ConfigFile {
   version?: string
   space?: string
   domain?: string
+  storyblokToken?: string
 }

@@ -223,6 +223,12 @@ class TemplateService extends BaseService {
         }
       },
       {
+        type: 'hidden',
+        name: 'storyblokToken',
+        message: 'Storyblok API token:',
+        required: true,
+      },
+      {
         type: 'input',
         name: 'domain',
         message: 'The target domain of the project:',
@@ -235,6 +241,23 @@ class TemplateService extends BaseService {
 
     const data = await this.askSetup(input)
     data.version = '1.0.0'
+
+    if (data.storyblokToken) {
+      const envPath = path.join(destination, '.env')
+      const env = await fs.readFile(envPath, 'utf8')
+      const newEnv = env.replace(/NUXT_STORYBLOK_ACCESS_TOKEN=.*/, `NUXT_STORYBLOK_ACCESS_TOKEN=${data.storyblokToken}`)
+      await fs.writeFile(envPath, newEnv)
+    }
+
+    if (data.space) {
+      // replace all occurance of '<space>' with the actual space id in package.json
+      const packageJsonPath = path.join(destination, 'package.json')
+      const packageJson = await fs.readFile(packageJsonPath, 'utf8')
+      const newPackageJson = packageJson.replace(/<space>/g, data.space)
+      await fs.writeFile(packageJsonPath, newPackageJson)
+    }
+
+    delete data.storyblokToken
 
     const configFile = path.join(destination, 'sabaccui.config.json')
     await fs.writeJSON(configFile, data, { spaces: 2 })
@@ -268,6 +291,11 @@ class TemplateService extends BaseService {
         this.output(chalk.green('✅ Source repository cloned successfully.'))
       }
 
+      const envExamplePath = path.join(projectDir, '.env.example')
+      const envPath = path.join(projectDir, '.env')
+      if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+        await fs.copy(envExamplePath, envPath)
+      }
       const config = await this.setup(projectDir, { name, space })
 
       this.output(chalk.blue('📁 Copying template files...'))
@@ -302,11 +330,6 @@ class TemplateService extends BaseService {
       }
 
       this.output(chalk.blue('🔗 Initializing git repository...'))
-      const envExamplePath = path.join(projectDir, '.env.example')
-      const envPath = path.join(projectDir, '.env')
-      if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-        await fs.copy(envExamplePath, envPath)
-      }
 
       await execPromise('git init', { cwd: projectDir })
       await execPromise('git add .', { cwd: projectDir })
