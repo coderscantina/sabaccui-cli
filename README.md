@@ -48,6 +48,33 @@ Enter and activate your SabaccUI license key:
 sabaccui license
 ```
 
+### configure
+
+Retrieve your global SabaccUI settings:
+
+```sh
+sabaccui config
+```
+
+Retrieve a specific SabaccUI setting:
+
+```sh
+sabaccui config <key>
+```
+
+Set a SabaccUI setting:
+
+```sh
+sabaccui config <key> <value>
+```
+
+#### Available Settings
+
+| Key | Default | Description                                                   |
+| --- |---------|---------------------------------------------------------------|
+| `certificateSources.cert` | `null`  | Path to a SSL certificate file to be linked into the project. |
+| `certificateSources.key`  | `null`  | Path to a SSL key file to be linked into the project.         |
+
 ### init
 
 Initialize a new SabaccUI project:
