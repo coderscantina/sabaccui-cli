@@ -32,6 +32,22 @@ Log out from your SabaccUI account:
 sabaccui logout
 ```
 
+### buy
+
+Purchase a SabaccUI license key:
+
+```sh
+sabaccui buy
+```
+
+### license
+
+Enter and activate your SabaccUI license key:
+
+```sh
+sabaccui license
+```
+
 ### init
 
 Initialize a new SabaccUI project:
@@ -42,6 +58,15 @@ sabaccui init <project-name> [template]
 
 Options:
 - `-p, --path <path>`: Specify the project path
+- '-s, --space <space>`: Specify the Storyblok space ID'
+
+### setup
+
+Setup SabaacUI in an existing project:
+
+```sh
+sabaccui setup
+```
 
 ### templates
 
@@ -69,6 +94,7 @@ sabaccui add <component-name>
 
 Options:
 - `-p, --path <path>`: Specify the project path
+- '-s, --space <space>`: Specify the Storyblok space ID'
 
 ## Examples
 
