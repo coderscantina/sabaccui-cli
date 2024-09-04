@@ -49,9 +49,9 @@ class BaseService {
       }
 
       await execPromise(installCommand, { cwd: projectDir })
-      console.log(chalk.green('✓') + ' Packages installed successfully.')
+      this.output(chalk.green('✓') + ' Packages installed successfully.')
     } else {
-      console.log(chalk.yellow('I') + ' No new packages to install.')
+      this.output(chalk.yellow('I') + ' No new packages to install.')
     }
   }
 
@@ -98,7 +98,7 @@ class BaseService {
     const storyblokCommand = `storyblok push-components ${file} --space ${space}`
     try {
       const result = await execPromise(storyblokCommand, { cwd: projectDir })
-      console.log(chalk.green('✓') + ' Storyblok component pushed successfully.')
+      this.output(chalk.green('✓') + ' Storyblok component pushed successfully.')
     } catch (error) {
       console.error(chalk.red('X') + ' Error pushing Storyblok component:', error.message)
     }
@@ -120,7 +120,7 @@ class ComponentService extends BaseService {
   }
 
   async add(projectDir: string, key: string, space: string, silent: boolean = false): Promise<void> {
-    this.output(chalk.blue(`📦 Downloading component: ${key} ...`))
+    this.output(chalk.blue(`📦 Downloading component: ${key} ...`), silent)
 
     const configFile = path.join(projectDir, 'sabaccui.config.json')
     const config = await fs.readJSON(configFile)
@@ -136,8 +136,8 @@ class ComponentService extends BaseService {
       const zipBuffer = await this.api.downloadComponent(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'))
 
-      this.output(chalk.green('✅ Component downloaded successfully.'))
-      this.output(chalk.blue('🛠 Extracting component...'))
+      this.output(chalk.green('✅ Component downloaded successfully.'), silent)
+      this.output(chalk.blue('🛠 Extracting component...'), silent)
 
       const zip = new AdmZip(zipBuffer)
       zip.extractAllTo(tempDir, true)
@@ -145,46 +145,36 @@ class ComponentService extends BaseService {
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      this.output(chalk.green('✅ Component extracted successfully.'))
-      this.output(chalk.blue('📁 Copying files...'))
+      this.output(chalk.green('✅ Component extracted successfully.'), silent)
+      this.output(chalk.blue('📁 Copying files...'), silent)
 
+      await this.copyFiles(tempDir, projectDir, manifest.files)
       await this.copyFiles(tempDir, projectDir, manifest.componentFiles)
       await this.copyFiles(tempDir, projectDir, manifest.storyblokFiles)
       await this.copyFiles(tempDir, projectDir, manifest.storyblokDefinitions)
 
-      this.output(chalk.green('✅ Files copied successfully.'))
+      this.output(chalk.green('✅ Files copied successfully.'), silent)
 
-      if (manifest.packages) {
-        this.output(chalk.blue('📦 Installing packages...'))
+      if (manifest.packages && !silent) {
+        this.output(chalk.blue('📦 Installing packages...'), silent)
         await this.handlePackages(projectDir, manifest.packages)
       }
 
       if (manifest.storyblokDefinitions) {
-        this.output(chalk.blue('🚀 Pushing Storyblok component...'))
+          this.output(chalk.blue('🚀 Pushing Storyblok component...'), silent)
         await manifest.storyblokDefinitions.forEach(async (definitionFile: string) => {
           await this.pushStoryblokComponent(projectDir, definitionFile, space)
         })
       }
 
-      this.output(chalk.blue('📦 Installing packages...'))
-      await execPromise('bun install', { cwd: projectDir })
-      this.output(chalk.green('✅ Packages installed successfully.'))
+        this.output(chalk.blue('📦 Installing packages...'), silent)
+        await execPromise('bun install', { cwd: projectDir })
+        this.output(chalk.green('✅ Packages installed successfully.'), silent)
 
-      this.output(chalk.blue('🔗 Initializing git repository...'))
-      const envExamplePath = path.join(projectDir, '.env.example')
-      const envPath = path.join(projectDir, '.env')
-      if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-        await fs.copy(envExamplePath, envPath)
-      }
-
-      await execPromise('git init', { cwd: projectDir })
-      await execPromise('git add .', { cwd: projectDir })
-      this.output(chalk.green('✅ Git repository initialized.'))
-
-      this.output(chalk.blue('🧹 Cleaning up...'))
+      this.output(chalk.blue('🧹 Cleaning up...'), silent)
       await fs.remove(tempDir)
 
-      this.output(chalk.green('✅ Component installed successfully!'))
+      this.output(chalk.green('✅ Component installed successfully!'), silent)
     } catch (error) {
       console.error(chalk.red('X'), error.message)
     }
@@ -245,7 +235,7 @@ class TemplateService extends BaseService {
   }
 
   async setup(destination: string, input?: ConfigFile): Promise<ConfigFile> {
-    console.log(chalk.blue('🔧 Setting up project...'))
+    this.output(chalk.blue('🔧 Setting up project...'))
 
     const data = await this.askSetup(input)
     data.version = '1.0.0'
@@ -253,68 +243,85 @@ class TemplateService extends BaseService {
     const configFile = path.join(destination, 'sabaccui.config.json')
     await fs.writeJSON(configFile, data, { spaces: 2 })
 
-    console.log(chalk.green('✅ Project setup successfully!'))
+    this.output(chalk.green('✅ Project setup successfully!'))
 
     return data
   }
 
   async init(name: string, key: string, destination: string, space: string): Promise<void> {
-    console.log(chalk.blue('📦 Downloading template...'))
+    this.output(chalk.blue('📦 Downloading template...'))
     const projectDir = path.join(destination, name)
 
     try {
       const zipBuffer = await this.api.downloadTemplate(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'template-'))
 
-      console.log(chalk.green('✅ Template downloaded successfully.'))
-      console.log(chalk.blue('🛠 Extracting template...'))
+      this.output(chalk.green('✅ Template downloaded successfully.'))
+      this.output(chalk.blue('🛠 Extracting template...'))
       const zip = new AdmZip(zipBuffer)
       zip.extractAllTo(tempDir, true)
 
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      console.log(chalk.green('✅ Template extracted successfully.'))
+      this.output(chalk.green('✅ Template extracted successfully.'))
 
       if (manifest.source) {
-        console.log(chalk.blue('🔗 Cloning source repository...'))
+        this.output(chalk.blue('🔗 Cloning source repository...'))
         await this.cloneSource(manifest.source, projectDir)
-        console.log(chalk.green('✅ Source repository cloned successfully.'))
+        this.output(chalk.green('✅ Source repository cloned successfully.'))
       }
 
       const config = await this.setup(projectDir, { name, space })
 
-      console.log(chalk.blue('📁 Copying template files...'))
+      this.output(chalk.blue('📁 Copying template files...'))
       await this.copyFiles(tempDir, projectDir, manifest.templateFiles)
-      console.log(chalk.green('✅ Template files copied successfully.'))
+      this.output(chalk.green('✅ Template files copied successfully.'))
 
       if (manifest.usedComponents) {
-        console.log(chalk.blue('🧩 Installing components...'))
-        for (const componentKey of manifest.usedComponents) {
-          console.log(chalk.yellow(`Installing component: ${componentKey}`))
-          await this.componentService.add(projectDir, componentKey, config.space, true)
-        }
-        console.log(chalk.green('✅ All components installed successfully.'))
+        this.output(chalk.blue('🧩 Installing components...'))
+        const installPromises = manifest.usedComponents.map(async (componentKey) => {
+          this.output(chalk.yellow(`Installing component: ${componentKey}`))
+          return this.componentService.add(projectDir, componentKey, config.space, true)
+        })
+        await Promise.all(installPromises)
+        this.output(chalk.green('✅ All components installed successfully.'))
       }
 
+      this.output(chalk.blue('📦 Installing packages...'))
       if (manifest.packages) {
-        console.log(chalk.blue('📦 Installing packages...'))
         await this.handlePackages(projectDir, manifest.packages)
+      } else {
+
+        await execPromise('bun install', { cwd: projectDir })
       }
+      this.output(chalk.green('✅ Packages installed successfully.'))
 
       if (manifest.migrations) {
-        console.log(chalk.blue('🔄 Running migrations...'))
+        this.output(chalk.blue('🔄 Running migrations...'))
         for (const migration of manifest.migrations) {
           const migrationPath = path.join(projectDir, migration)
           await execPromise(`node ${migrationPath}`, { cwd: projectDir })
         }
-        console.log(chalk.green('✅ Migrations completed successfully.'))
+        this.output(chalk.green('✅ Migrations completed successfully.'))
       }
 
-      console.log(chalk.blue('🧹 Cleaning up...'))
+      this.output(chalk.blue('🔗 Initializing git repository...'))
+      const envExamplePath = path.join(projectDir, '.env.example')
+      const envPath = path.join(projectDir, '.env')
+      if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+        await fs.copy(envExamplePath, envPath)
+      }
+
+      await execPromise('git init', { cwd: projectDir })
+      await execPromise('git add .', { cwd: projectDir })
+
+      this.output(chalk.green('✅ Git repository initialized.'))
+
+      this.output(chalk.blue('🧹 Cleaning up...'))
       await fs.remove(tempDir)
 
-      console.log(chalk.green('✅ Template installed successfully!'))
+      this.output(chalk.green('✅ Template installed successfully!'))
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error.message)
     }
