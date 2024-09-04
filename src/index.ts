@@ -102,15 +102,23 @@ program.command('logout')
     console.log('Logged out')
   })
 
+
 program.command('init')
   .description('Initialize a new SabaccUI based project with the given name')
   .argument('<name>', 'Name of the project')
   .argument('[template]', 'Template to use for the project', 'boilerplate')
   .option('-p, --path <path>', 'Path of the project')
-  .action((name, template, options) => {
-    console.log(name, template, options.path)
+  .option('-s, --space <space>', 'The id of the Storyblok space to use')
+  .action(async (name, template, options) => {
+    await new TemplateService().init(name, template, options.path || process.cwd(), options.space)
+  })
 
-    new TemplateService().init(name, template, options.path || process.cwd())
+program.command('setup')
+  .description('Setup a SabaccUI based project in the given directory')
+  .option('-p, --path <path>', 'Path of the project')
+  .action(async (options) => {
+    const name = path.basename(options.path || process.cwd())
+    await new TemplateService().setup(options.path || process.cwd(), { name })
   })
 
 program.command('templates')
@@ -135,8 +143,9 @@ program.command('add')
   .argument('<component>', 'Name of the component to add')
   .description('Add a new component to the project')
   .option('-p, --path <path>', 'Path of the project to add the component to')
+  .option('-s, --space <space>', 'The id of the Storyblok space to use')
   .action((component, options) => {
-    new ComponentService().add(options.path || process.cwd(), component)
+    new ComponentService().add(options.path || process.cwd(), component, options.space)
   })
 
 program.parse(process.argv)

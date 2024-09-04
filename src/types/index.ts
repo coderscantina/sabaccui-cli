@@ -34,3 +34,10 @@ export interface ComponentListResponse {
 export interface TemplateListResponse {
   data: TemplateResource[]
 }
+
+export interface ConfigFile {
+  name?: string
+  version?: string
+  space?: string
+  domain?: string
+}
