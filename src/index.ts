@@ -12,6 +12,7 @@ import path from 'path'
 import fs from 'fs'
 
 import { Service, ComponentService, TemplateService } from './services.js'
+import { Config } from './config.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
@@ -102,6 +103,27 @@ program.command('logout')
     console.log('Logged out')
   })
 
+program.command('config')
+  .description('Get or set SabaccUI configuration options')
+  .argument('[key]', 'Configuration key (use dot notation for nested keys)')
+  .argument('[value]', 'Configuration value')
+  .action(async (key, value) => {
+    const config = new Config()
+
+    if (!key) {
+      // Display all configurations
+      const all = config.getAll()
+      console.log(JSON.stringify(all, null, 2))
+    } else if (!value) {
+      // Get a specific configuration value
+      const configValue = config.get(key)
+      console.log(configValue)
+    } else {
+      // Set a configuration value
+      config.set(key, value)
+      console.log(chalk.green('✓') + ` Configuration '${key}' set to '${value}'`)
+    }
+  })
 
 program.command('init')
   .description('Initialize a new SabaccUI based project with the given name')

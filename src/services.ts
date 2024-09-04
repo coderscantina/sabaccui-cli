@@ -11,14 +11,18 @@ import API from './api'
 import credentials from './utils/credentials'
 import { ConfigFile, LoginPayload } from './types'
 import inquirer from 'inquirer'
+import { Config } from './config'
 
 const execPromise = util.promisify(exec)
 
 class BaseService {
   protected api: API
 
+  protected config: Config
+
   constructor() {
     this.api = new API()
+    this.config = new Config()
   }
 
   protected async copyFiles(sourceDir: string, targetDir: string, files: string[] | undefined): Promise<void> {
@@ -223,7 +227,7 @@ class TemplateService extends BaseService {
         }
       },
       {
-        type: 'hidden',
+        type: 'password',
         name: 'storyblokToken',
         message: 'Storyblok API token:',
         required: true,
@@ -255,6 +259,28 @@ class TemplateService extends BaseService {
       const packageJson = await fs.readFile(packageJsonPath, 'utf8')
       const newPackageJson = packageJson.replace(/<space>/g, data.space)
       await fs.writeFile(packageJsonPath, newPackageJson)
+    }
+
+    // Handle certificate symlinks and package.json updates
+    const certSource = this.config.get('certificateSources.cert')
+    const keySource = this.config.get('certificateSources.key')
+
+    if (certSource && keySource) {
+      const certDest = path.join(destination, 'localhost.crt')
+      const keyDest = path.join(destination, 'localhost.key')
+
+      // Create symlinks
+      await fs.ensureSymlink(certSource, certDest)
+      await fs.ensureSymlink(keySource, keyDest)
+
+      // Update package.json
+      const packageJsonPath = path.join(destination, 'package.json')
+      let packageJson = await fs.readFile(packageJsonPath, 'utf8')
+      packageJson = packageJson.replace(/<localhost.crt>/g, 'localhost.crt')
+      packageJson = packageJson.replace(/<localhost.key>/g, 'localhost.key')
+      await fs.writeFile(packageJsonPath, packageJson)
+
+      this.output(chalk.green('✅ SSL certificates configured successfully.'))
     }
 
     delete data.storyblokToken
