@@ -1,6 +1,6 @@
 {
   "name": "sabaccui",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "A simple CLI to use the SabaccUI templates and components",
   "main": "./dist/index.mjs",
   "author": "Michael Wallner @ Coder's Cantina",
