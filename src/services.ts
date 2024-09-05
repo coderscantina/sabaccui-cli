@@ -31,7 +31,9 @@ class BaseService {
       const dest = path.join(targetDir, file)
 
       await fs.ensureDir(path.dirname(dest))
-      await fs.copy(src, dest)
+      if (!fs.existsSync(dest)) {
+        await fs.copy(src, dest)
+      }
     }
   }
 
