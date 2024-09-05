@@ -13,6 +13,7 @@ import fs from 'fs'
 
 import { Service, ComponentService, TemplateService } from './services.js'
 import { Config } from './config.js'
+import { exec } from 'child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
@@ -93,6 +94,7 @@ program.command('license')
 program.command('buy')
   .description('Buy a license')
   .action(() => {
+    exec('open https://www.sabaccui.com/pricing')
     console.log('Here is the link to buy a license: https://www.sabaccui.com')
   })
 
