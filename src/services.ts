@@ -140,7 +140,7 @@ class ComponentService extends BaseService {
       const zipBuffer = await this.api.downloadComponent(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'))
 
-      this.output(chalk.green('✅ Component downloaded successfully.'), silent)
+      this.output(chalk.green('✅  Component downloaded successfully.'), silent)
       this.output(chalk.blue('🛠 Extracting component...'), silent)
 
       const zip = new AdmZip(zipBuffer)
@@ -149,7 +149,7 @@ class ComponentService extends BaseService {
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      this.output(chalk.green('✅ Component extracted successfully.'), silent)
+      this.output(chalk.green('✅  Component extracted successfully.'), silent)
       this.output(chalk.blue('📁 Copying files...'), silent)
 
       await this.copyFiles(tempDir, projectDir, manifest.files)
@@ -157,7 +157,7 @@ class ComponentService extends BaseService {
       await this.copyFiles(tempDir, projectDir, manifest.storyblokFiles)
       await this.copyFiles(tempDir, projectDir, manifest.storyblokDefinitions)
 
-      this.output(chalk.green('✅ Files copied successfully.'), silent)
+      this.output(chalk.green('✅  Files copied successfully.'), silent)
 
       if (manifest.packages && !silent) {
         this.output(chalk.blue('📦 Installing packages...'), silent)
@@ -165,16 +165,16 @@ class ComponentService extends BaseService {
       }
 
       if (manifest.storyblokDefinitions) {
-          this.output(chalk.blue('🚀 Pushing Storyblok component...'), silent)
-        await manifest.storyblokDefinitions.forEach(async (definitionFile: string) => {
+        this.output(chalk.blue('🚀 Pushing Storyblok bloks...'), silent)
+        await Promise.all(manifest.storyblokDefinitions.map(async (definitionFile: string) => {
           await this.pushStoryblokComponent(projectDir, definitionFile, space)
-        })
+        }))
       }
 
       this.output(chalk.blue('🧹 Cleaning up...'), silent)
       await fs.remove(tempDir)
 
-      this.output(chalk.green('✅ Component installed successfully!'), silent)
+      this.output(chalk.green('✅  Component installed successfully!'), silent)
     } catch (error) {
       console.error(chalk.red('X'), error.message)
     }
@@ -294,7 +294,7 @@ class TemplateService extends BaseService {
       packageJson = packageJson.replace(/<localhost.key>/g, 'localhost.key')
       await fs.writeFile(packageJsonPath, packageJson)
 
-      this.output(chalk.green('✅ SSL certificates configured successfully.'))
+      this.output(chalk.green('✅  SSL certificates configured successfully.'))
     }
 
     delete data.storyblokToken
@@ -302,7 +302,7 @@ class TemplateService extends BaseService {
     const configFile = path.join(destination, 'sabaccui.config.json')
     await fs.writeJSON(configFile, data, { spaces: 2 })
 
-    this.output(chalk.green('✅ Project setup successfully!'))
+    this.output(chalk.green('✅  Project setup successfully!'))
 
     return data
   }
@@ -315,7 +315,7 @@ class TemplateService extends BaseService {
       const zipBuffer = await this.api.downloadTemplate(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'template-'))
 
-      this.output(chalk.green('✅ Template downloaded successfully.'))
+      this.output(chalk.green('✅  Template downloaded successfully.'))
       this.output(chalk.blue('🛠 Extracting template...'))
       const zip = new AdmZip(zipBuffer)
       zip.extractAllTo(tempDir, true)
@@ -323,12 +323,12 @@ class TemplateService extends BaseService {
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      this.output(chalk.green('✅ Template extracted successfully.'))
+      this.output(chalk.green('✅  Template extracted successfully.'))
 
       if (manifest.source) {
         this.output(chalk.blue('🔗 Cloning source repository...'))
         await this.cloneSource(manifest.source, projectDir)
-        this.output(chalk.green('✅ Source repository cloned successfully.'))
+        this.output(chalk.green('✅  Source repository cloned successfully.'))
       }
 
       const envExamplePath = path.join(projectDir, '.env.example')
@@ -340,7 +340,7 @@ class TemplateService extends BaseService {
 
       this.output(chalk.blue('📁 Copying template files...'))
       await this.copyFiles(tempDir, projectDir, manifest.templateFiles)
-      this.output(chalk.green('✅ Template files copied successfully.'))
+      this.output(chalk.green('✅  Template files copied successfully.'))
 
       if (manifest.usedComponents) {
         this.output(chalk.blue('🧩 Installing components...'))
@@ -349,7 +349,7 @@ class TemplateService extends BaseService {
           return this.componentService.add(projectDir, componentKey, config.space, true)
         })
         await Promise.all(installPromises)
-        this.output(chalk.green('✅ All components installed successfully.'))
+        this.output(chalk.green('✅  All components installed successfully.'))
       }
 
       this.output(chalk.blue('📦 Installing packages...'))
@@ -358,7 +358,7 @@ class TemplateService extends BaseService {
       } else {
         await execPromise('bun install', { cwd: projectDir })
       }
-      this.output(chalk.green('✅ Packages installed successfully.'))
+      this.output(chalk.green('✅  Packages installed successfully.'))
 
       if (manifest.migrations) {
         this.output(chalk.blue('🔄 Running migrations...'))
@@ -366,7 +366,7 @@ class TemplateService extends BaseService {
           const migrationPath = path.join(projectDir, migration)
           await execPromise(`node ${migrationPath}`, { cwd: projectDir })
         }
-        this.output(chalk.green('✅ Migrations completed successfully.'))
+        this.output(chalk.green('✅  Migrations completed successfully.'))
       }
 
       this.output(chalk.blue('🔗 Initializing git repository...'))
@@ -374,12 +374,12 @@ class TemplateService extends BaseService {
       await execPromise('git init', { cwd: projectDir })
       await execPromise('git add .', { cwd: projectDir })
 
-      this.output(chalk.green('✅ Git repository initialized.'))
+      this.output(chalk.green('✅  Git repository initialized.'))
 
       this.output(chalk.blue('🧹 Cleaning up...'))
       await fs.remove(tempDir)
 
-      this.output(chalk.green('✅ Template installed successfully!'))
+      this.output(chalk.green('✅  Template installed successfully!'))
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error.message)
     }
