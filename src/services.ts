@@ -199,6 +199,8 @@ class TemplateService extends BaseService {
   }
 
   async askSetup(defaults?: ConfigFile): Promise<ConfigFile> {
+    let space = defaults?.space
+
     // @ts-ignore
     return await inquirer.prompt([
       {
@@ -217,20 +219,32 @@ class TemplateService extends BaseService {
         type: 'input',
         name: 'space',
         message: 'Storyblok space id:',
-        default: defaults?.space,
+        default: space,
         required: true,
         validate: function (value) {
           if (value.length) {
+            space = value
             return true
           }
+
           return 'Please enter a valid space id'
         }
       },
       {
         type: 'password',
         name: 'storyblokToken',
-        message: 'Storyblok API token:',
+        message() {
+          exec(`open https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api`)
+          return 'Storyblok API token:'
+        },
         required: true,
+        validate: function (value) {
+          if (value.length) {
+            return true
+          }
+          exec(`open https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api`)
+          return `Visit https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api to get your API token`
+        }
       },
       {
         type: 'input',
