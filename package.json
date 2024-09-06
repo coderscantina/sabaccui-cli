@@ -28,6 +28,7 @@
     "fs-extra": "^11.2.0",
     "inquirer": "^10.1.8",
     "netrc": "^0.1.4",
+    "ora": "^8.1.0",
     "update-notifier": "^7.2.0"
   },
   "devDependencies": {
