@@ -11,7 +11,10 @@ import updateNotifier from 'update-notifier'
 import path from 'path'
 import fs from 'fs'
 
-import { Service, ComponentService, TemplateService } from './services.js'
+import Service from './services/Service.js'
+import TemplateService from './services/TemplateService.js'
+import BlokService from './services/BlokService.js'
+
 import { Config } from './config.js'
 import { exec } from 'child_process'
 
@@ -154,22 +157,22 @@ program.command('templates')
     }
   })
 
-program.command('components')
-  .description('List all available components')
+program.command('bloks')
+  .description('List all available bloks')
   .action(async (key) => {
-    const result = await (new ComponentService()).list()
+    const result = await (new BlokService()).list()
     if (result) {
       console.table(result)
     }
   })
 
 program.command('add')
-  .argument('<component>', 'Name of the component to add')
-  .description('Add a new component to the project')
-  .option('-p, --path <path>', 'Path of the project to add the component to')
+  .argument('<blok>', 'Name of the blok to add')
+  .description('Add a new blok to the project')
+  .option('-p, --path <path>', 'Path of the project to add the blok to')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
-  .action((component, options) => {
-    new ComponentService().add(options.path || process.cwd(), component, options.space)
+  .action((blok, options) => {
+    new BlokService().add(options.path || process.cwd(), blok, options.space)
   })
 
 program.parse(process.argv)
