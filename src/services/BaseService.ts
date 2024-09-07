@@ -25,7 +25,16 @@ class BaseService {
       const dest = path.join(targetDir, file)
 
       await fs.ensureDir(path.dirname(dest))
-      if (!fs.existsSync(dest)) {
+      if (fs.existsSync(dest)) {
+        const srcContent = await fs.readFile(src, 'utf-8')
+        const destContent = await fs.readFile(dest, 'utf-8')
+
+        if (srcContent !== destContent) {
+          const baseName = path.basename(file, path.extname(file))
+          
+          await fs.copy(src, dest.replace(baseName, `${baseName}.default`))
+        }
+      } else {
         await fs.copy(src, dest)
       }
     }
