@@ -1,7 +1,13 @@
-import API from '../api'
-import { Config } from '../config'
+import fs from 'fs-extra'
 import path from 'path'
+import util from 'util'
+import API from '../api'
+import { exec } from 'child_process'
 import chalk, { ChalkInstance } from 'chalk'
+import { Config } from '../config'
+import { Ora } from 'ora'
+
+const execPromise = util.promisify(exec)
 
 class BaseService {
   protected api: API
@@ -45,7 +51,7 @@ class BaseService {
       await execPromise(installCommand, { cwd: projectDir })
       this.output(chalk.green('✓') + ' Packages installed successfully.')
     } else {
-      this.output(chalk.yellow('I') + ' No new packages to install.')
+      this.output(chalk.blue('ℹ') + ' No new packages to install.')
     }
   }
 
@@ -87,14 +93,15 @@ class BaseService {
     await this.installPackages(projectDir, devDependenciesToInstall, true, packageManager)
   }
 
-  protected async pushStoryblokComponent(projectDir: string, definitionFile: string, space: string): Promise<void> {
+  protected async pushStoryblokComponent(projectDir: string, definitionFile: string, space: string, spinner: Ora): Promise<void> {
     const file = path.join(projectDir, definitionFile)
     const storyblokCommand = `storyblok push-components ${file} --space ${space}`
+
     try {
-      const result = await execPromise(storyblokCommand, { cwd: projectDir })
-      this.output(chalk.green('✓') + ' Storyblok component pushed successfully.')
+      await execPromise(storyblokCommand, { cwd: projectDir })
+      spinner.succeed('Blok pushed to Storyblok.')
     } catch (error) {
-      console.error(chalk.red('X') + ' Error pushing Storyblok component:', error.message)
+      spinner.fail(`Error pushing blok to Storyblok: ${error.message}`)
     }
   }
 

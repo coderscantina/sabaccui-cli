@@ -26,14 +26,14 @@ const program = new Command()
 updateNotifier({ pkg })
   .notify({ isGlobal: true })
 
-console.log(chalk.magentaBright(figlet.textSync('SabaccUI')))
-console.log('Welcome to the SabaccUI CLI')
-console.log()
-
-program.version(pkg.version)
+program.addHelpText('beforeAll', chalk.magentaBright(figlet.textSync('SabaccUI')))
+  .configureHelp({
+    sortSubcommands: true
+  })
+  .version(pkg.version)
 
 program.command('login')
-  .description('Login to SabaccUI')
+  .description('login to SabaccUI')
   .action(async () => {
     const content = await inquirer.prompt([
       {
@@ -66,7 +66,7 @@ program.command('login')
     if (await (new Service()).login(content)) {
       console.log(chalk.green('✓') + ' Logged in successfully! Session Token is stored in your .netrc file.')
     } else {
-      console.error(chalk.red('X') + ' An error occurred when login the user')
+      console.error(chalk.red('✖') + ' An error occurred when login the user')
     }
   })
 
@@ -90,26 +90,26 @@ program.command('license')
     if (await (new Service()).license(content)) {
       console.log(chalk.green('✓') + ' License key stored successfully!')
     } else {
-      console.error(chalk.red('X') + ' An error occurred when storing the license key')
+      console.error(chalk.red('✖') + ' An error occurred when storing the license key')
     }
   })
 
 program.command('buy')
-  .description('Buy a license')
+  .description('buy a license')
   .action(() => {
     exec('open https://www.sabaccui.com/pricing')
     console.log('Here is the link to buy a license: https://www.sabaccui.com')
   })
 
 program.command('logout')
-  .description('Logout of SabaccUI')
+  .description('logout of SabaccUI')
   .action(async () => {
     await (new Service()).logout()
     console.log('Logged out')
   })
 
 program.command('config')
-  .description('Get or set SabaccUI configuration options')
+  .description('get or set SabaccUI configuration options')
   .argument('[key]', 'Configuration key (use dot notation for nested keys)')
   .argument('[value]', 'Configuration value')
   .action(async (key, value) => {
@@ -131,9 +131,9 @@ program.command('config')
   })
 
 program.command('init')
-  .description('Initialize a new SabaccUI based project with the given name')
+  .description('initialize a new SabaccUI based project with the given name')
   .argument('<name>', 'Name of the project')
-  .argument('[template]', 'Template to use for the project', 'boilerplate')
+  .argument('[template]', 'Template to use for the project', 'empty')
   .option('-p, --path <path>', 'Path of the project')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
   .action(async (name, template, options) => {
@@ -141,7 +141,7 @@ program.command('init')
   })
 
 program.command('setup')
-  .description('Setup a SabaccUI based project in the given directory')
+  .description('setup a SabaccUI based project in the given directory')
   .option('-p, --path <path>', 'Path of the project')
   .action(async (options) => {
     const name = path.basename(options.path || process.cwd())
@@ -149,7 +149,7 @@ program.command('setup')
   })
 
 program.command('templates')
-  .description('List all available templates')
+  .description('list all available templates')
   .action(async () => {
     const result = await (new TemplateService()).list()
     if (result) {
@@ -158,7 +158,7 @@ program.command('templates')
   })
 
 program.command('bloks')
-  .description('List all available bloks')
+  .description('list all available bloks')
   .action(async (key) => {
     const result = await (new BlokService()).list()
     if (result) {
@@ -168,7 +168,7 @@ program.command('bloks')
 
 program.command('add')
   .argument('<blok>', 'Name of the blok to add')
-  .description('Add a new blok to the project')
+  .description('add a new blok to the project')
   .option('-p, --path <path>', 'Path of the project to add the blok to')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
   .action((blok, options) => {
@@ -176,7 +176,3 @@ program.command('add')
   })
 
 program.parse(process.argv)
-
-if (program.rawArgs.length <= 1) {
-  program.help()
-}

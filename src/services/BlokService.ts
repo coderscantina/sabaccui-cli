@@ -4,6 +4,7 @@ import chalk from 'chalk'
 import path from 'path'
 import os from 'os'
 import BaseService from './BaseService'
+import ora from 'ora'
 
 class BlokService extends BaseService {
   async list() {
@@ -11,12 +12,15 @@ class BlokService extends BaseService {
       const { data } = await this.api.getComponents()
       return data
     } catch (error) {
-      console.error(chalk.red('X'), error.message)
+      console.error(chalk.red('✖'), error.message)
     }
   }
 
-  async add(projectDir: string, key: string, space: string, silent: boolean = false): Promise<void> {
-    this.output(chalk.blue(`📦 Downloading component: ${key} ...`), silent)
+  async add(projectDir: string, key: string, space: string, isSilent: boolean = false): Promise<void> {
+    const spinner = ora({
+      isSilent
+    })
+    spinner.start(`Downloading blok ${key}...`)
 
     const configFile = path.join(projectDir, 'sabaccui.config.json')
     const config = await fs.readJSON(configFile)
@@ -32,8 +36,8 @@ class BlokService extends BaseService {
       const zipBuffer = await this.api.downloadComponent(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'))
 
-      this.output(chalk.green('✅  Component downloaded successfully.'), silent)
-      this.output(chalk.blue('🛠 Extracting component...'), silent)
+      spinner.succeed(`Blok ${key} downloaded.`)
+      spinner.start('Extracting blok...')
 
       const zip = new AdmZip(zipBuffer)
       zip.extractAllTo(tempDir, true)
@@ -41,32 +45,31 @@ class BlokService extends BaseService {
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      this.output(chalk.green('✅  Component extracted successfully.'), silent)
-      this.output(chalk.blue('📁 Copying files...'), silent)
+      spinner.succeed('Blok extracted.')
 
+      spinner.start('Copying files...')
       await this.copyFiles(tempDir, projectDir, manifest.files)
       await this.copyFiles(tempDir, projectDir, manifest.componentFiles)
       await this.copyFiles(tempDir, projectDir, manifest.storyblokFiles)
       await this.copyFiles(tempDir, projectDir, manifest.storyblokDefinitions)
+      spinner.succeed('Files copied.')
 
-      this.output(chalk.green('✅  Files copied successfully.'), silent)
-
-      if (manifest.packages && !silent) {
-        this.output(chalk.blue('📦 Installing packages...'), silent)
+      if (manifest.packages && !isSilent) {
+        spinner.start('Installing packages...')
         await this.handlePackages(projectDir, manifest.packages)
       }
 
       if (manifest.storyblokDefinitions) {
-        this.output(chalk.blue('🚀 Pushing Storyblok bloks...'), silent)
+        spinner.start('Pushing bloks to Storyblok...')
         await Promise.all(manifest.storyblokDefinitions.map(async (definitionFile: string) => {
-          await this.pushStoryblokComponent(projectDir, definitionFile, space)
+          await this.pushStoryblokComponent(projectDir, definitionFile, space, spinner)
         }))
       }
 
-      this.output(chalk.blue('🧹 Cleaning up...'), silent)
+      spinner.start('Cleaning up...')
       await fs.remove(tempDir)
 
-      this.output(chalk.green('✅  Component installed successfully!'), silent)
+      spinner.succeed(`Blok ${key} added.`)
     } catch (error) {
       console.error(chalk.red('X'), error.message)
     }

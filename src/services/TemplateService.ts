@@ -3,13 +3,16 @@ import AdmZip from 'adm-zip'
 import degit from 'degit'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
-import { exec } from 'child_process'
+import ora from 'ora'
 import path from 'path'
 import os from 'os'
-
+import { exec } from 'child_process'
+import util from 'util'
 import { ConfigFile } from '../types'
 import BaseService from './BaseService'
 import BlokService from './BlokService'
+
+const execPromise = util.promisify(exec)
 
 class TemplateService extends BaseService {
   private blokService: BlokService
@@ -24,7 +27,7 @@ class TemplateService extends BaseService {
       const { data } = await this.api.getTemplates()
       return data
     } catch (error) {
-      console.error(chalk.red('X'), error.message)
+      console.error(chalk.red('✖'), error.message)
     }
   }
 
@@ -38,7 +41,7 @@ class TemplateService extends BaseService {
         name: 'name',
         default: defaults?.name,
         message: 'Name of the project:',
-        validate: function (value) {
+        validate: function (value: string) {
           if (value.length) {
             return true
           }
@@ -51,7 +54,7 @@ class TemplateService extends BaseService {
         message: 'Storyblok space id:',
         default: space,
         required: true,
-        validate: function (value) {
+        validate: function (value: string) {
           if (value.length) {
             space = value
             return true
@@ -68,11 +71,10 @@ class TemplateService extends BaseService {
           return 'Storyblok API token:'
         },
         required: true,
-        validate: function (value) {
+        validate: function (value: string) {
           if (value.length) {
             return true
           }
-          exec(`open https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api`)
           return `Visit https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api to get your API token`
         }
       },
@@ -85,7 +87,7 @@ class TemplateService extends BaseService {
   }
 
   async setup(destination: string, input?: ConfigFile): Promise<ConfigFile> {
-    this.output(chalk.blue('🔧 Setting up project...'))
+    this.output(chalk.blue('ℹ') + ' Setting up project...')
 
     const data = await this.askSetup(input)
     data.version = '1.0.0'
@@ -124,7 +126,7 @@ class TemplateService extends BaseService {
       packageJson = packageJson.replace(/<localhost.key>/g, 'localhost.key')
       await fs.writeFile(packageJsonPath, packageJson)
 
-      this.output(chalk.green('✅  SSL certificates configured successfully.'))
+      this.output(chalk.green('✔') + ' SSL certificates configured.')
     }
 
     delete data.storyblokToken
@@ -132,33 +134,33 @@ class TemplateService extends BaseService {
     const configFile = path.join(destination, 'sabaccui.config.json')
     await fs.writeJSON(configFile, data, { spaces: 2 })
 
-    this.output(chalk.green('✅  Project setup successfully!'))
+    this.output(chalk.green('✔') + ' Project setup successfully.')
 
     return data
   }
 
   async init(name: string, key: string, destination: string, space: string): Promise<void> {
-    this.output(chalk.blue('📦 Downloading template...'))
+    const spinner = ora('Downloading template...').start()
     const projectDir = path.join(destination, name)
 
     try {
       const zipBuffer = await this.api.downloadTemplate(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'template-'))
 
-      this.output(chalk.green('✅  Template downloaded successfully.'))
-      this.output(chalk.blue('🛠 Extracting template...'))
+      spinner.succeed('Template downloaded.')
+      spinner.start('Extracting template...')
       const zip = new AdmZip(zipBuffer)
       zip.extractAllTo(tempDir, true)
 
       const manifestPath = path.join(tempDir, 'manifest.json')
       const manifest = await fs.readJSON(manifestPath)
 
-      this.output(chalk.green('✅  Template extracted successfully.'))
+      spinner.succeed('Template extracted.')
 
       if (manifest.source) {
-        this.output(chalk.blue('🔗 Cloning source repository...'))
+        spinner.start('Cloning source repository...')
         await this.cloneSource(manifest.source, projectDir)
-        this.output(chalk.green('✅  Source repository cloned successfully.'))
+        spinner.succeed('Source repository cloned.')
       }
 
       const envExamplePath = path.join(projectDir, '.env.example')
@@ -168,50 +170,53 @@ class TemplateService extends BaseService {
       }
       const config = await this.setup(projectDir, { name, space })
 
-      this.output(chalk.blue('📁 Copying template files...'))
+      spinner.start('Copying template files...')
       await this.copyFiles(tempDir, projectDir, manifest.templateFiles)
-      this.output(chalk.green('✅  Template files copied successfully.'))
+      spinner.succeed('Template files copied.')
 
       if (manifest.usedComponents) {
-        this.output(chalk.blue('🧩 Installing components...'))
+        spinner.start('Installing components...')
+        const installedComponents:string[] = []
         const installPromises = manifest.usedComponents.map(async (componentKey) => {
-          this.output(chalk.yellow(`Installing component: ${componentKey}`))
+          installedComponents.push(componentKey)
           return this.blokService.add(projectDir, componentKey, config.space, true)
         })
         await Promise.all(installPromises)
-        this.output(chalk.green('✅  All components installed successfully.'))
+        spinner.succeed(`${installedComponents.length} Components installed:`)
+        installedComponents.forEach((component) => {
+          this.output(`  - ${component}`)
+        })
       }
 
-      this.output(chalk.blue('📦 Installing packages...'))
+      spinner.start('Installing packages...')
       if (manifest.packages) {
         await this.handlePackages(projectDir, manifest.packages)
       } else {
         await execPromise('bun install', { cwd: projectDir })
       }
-      this.output(chalk.green('✅  Packages installed successfully.'))
+      spinner.succeed('Packages installed.')
 
       if (manifest.migrations) {
-        this.output(chalk.blue('🔄 Running migrations...'))
+        spinner.start('Running migrations...')
         for (const migration of manifest.migrations) {
           const migrationPath = path.join(projectDir, migration)
           await execPromise(`node ${migrationPath}`, { cwd: projectDir })
         }
-        this.output(chalk.green('✅  Migrations completed successfully.'))
+        spinner.succeed('Migrations completed.')
       }
 
-      this.output(chalk.blue('🔗 Initializing git repository...'))
+      spinner.start('Initializing git repository...')
 
       await execPromise('git init', { cwd: projectDir })
       await execPromise('git add .', { cwd: projectDir })
 
-      this.output(chalk.green('✅  Git repository initialized.'))
+      spinner.succeed('Git repository initialized.')
 
-      this.output(chalk.blue('🧹 Cleaning up...'))
+      spinner.start('Cleaning up...')
       await fs.remove(tempDir)
-
-      this.output(chalk.green('✅  Template installed successfully!'))
+      spinner.stopAndPersist({text: 'Template installed successfully.', symbol: '🚀'})
     } catch (error) {
-      console.error(chalk.red('❌ Error:'), error.message)
+      console.error(chalk.red('✖'), error.message)
     }
   }
 

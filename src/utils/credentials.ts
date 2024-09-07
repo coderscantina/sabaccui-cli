@@ -42,7 +42,7 @@ const get = function () {
   return null
 }
 
-const set = function (email, token,) {
+const set = function (email?: string|null, token?: string|null) {
   const file = getFile()
   let obj = {}
 

@@ -78,7 +78,7 @@ class API {
     try {
       await handleError(response)
     } catch (error) {
-      console.error(chalk.red('X'), error.message)
+      console.error(chalk.red('✖'), error.message)
       return false
     }
 
@@ -95,7 +95,7 @@ class API {
     try {
       await handleError(response)
     } catch (error) {
-      console.error(chalk.red('X'), error.message)
+      console.error(chalk.red('✖'), error.message)
       return false
     }
 
