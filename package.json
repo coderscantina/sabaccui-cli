@@ -32,7 +32,10 @@
     "update-notifier": "^7.2.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
     "@types/bun": "^1.1.6",
+    "@types/degit": "^2.8.6",
+    "@types/fs-extra": "^11.0.4",
     "@types/update-notifier": "^6.0.8",
     "path": "^0.12.7",
     "unbuild": "^2.0.0"
