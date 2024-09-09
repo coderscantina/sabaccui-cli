@@ -40,7 +40,7 @@ class TemplateService extends BaseService {
         type: 'input',
         name: 'name',
         default: defaults?.name,
-        message: 'Name of the project:',
+        message: 'What is your project named?',
         validate: function (value: string) {
           if (value.length) {
             return true
@@ -51,7 +51,7 @@ class TemplateService extends BaseService {
       {
         type: 'input',
         name: 'space',
-        message: 'Storyblok space id:',
+        message: 'Enter your Storyblok space id:',
         default: space,
         required: true,
         validate: function (value: string) {
@@ -68,7 +68,7 @@ class TemplateService extends BaseService {
         name: 'storyblokToken',
         message() {
           exec(`open https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api`)
-          return 'Storyblok API token:'
+          return 'Enter your Storyblok access token:'
         },
         required: true,
         validate: function (value: string) {
@@ -81,7 +81,7 @@ class TemplateService extends BaseService {
       {
         type: 'input',
         name: 'domain',
-        message: 'The target domain of the project:',
+        message: 'What will be the target domain of the project:',
       },
     ])
   }
@@ -184,7 +184,7 @@ class TemplateService extends BaseService {
         await Promise.all(installPromises)
         spinner.succeed(`${installedComponents.length} Components installed:`)
         installedComponents.forEach((component) => {
-          this.output(`  - ${component}`)
+          this.output(`  + ${component}`)
         })
       }
 
