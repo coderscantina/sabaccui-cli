@@ -103,20 +103,20 @@ List all available project templates:
 sabaccui templates
 ```
 
-### components
+### bloks
 
-List all available components:
+List all available bloks:
 
 ```sh
-sabaccui components
+sabaccui bloks
 ```
 
 ### add
 
-Add a new component to your project:
+Add a new blok to your project:
 
 ```sh
-sabaccui add <component-name>
+sabaccui add <blok-name>
 ```
 
 Options:
@@ -132,9 +132,9 @@ sabaccui login
 # Initialize a new project
 sabaccui init my-project startup
 
-# List available components
-sabaccui components
+# List available bloks
+sabaccui bloks
 
-# Add a component to your project
+# Add a blok to your project
 sabaccui add button -p ./my-awesome-ui
 ```
