@@ -175,14 +175,14 @@ class TemplateService extends BaseService {
       spinner.succeed('Template files copied.')
 
       if (manifest.usedComponents) {
-        spinner.start('Installing components...')
+        spinner.start('Installing Bloks...')
         const installedComponents:string[] = []
         const installPromises = manifest.usedComponents.map(async (componentKey) => {
           installedComponents.push(componentKey)
           return this.blokService.add(projectDir, componentKey, config.space, true)
         })
         await Promise.all(installPromises)
-        spinner.succeed(`${installedComponents.length} Components installed:`)
+        spinner.succeed(`${installedComponents.length} Bloks installed:`)
         installedComponents.forEach((component) => {
           this.output(`  + ${component}`)
         })
