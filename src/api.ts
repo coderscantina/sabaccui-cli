@@ -44,8 +44,12 @@ async function handleError(response: Response, type: string | null = null, key: 
       }
       throw new Error('Resource not found.')
     } else {
-      const error = await response.json()
-      throw new Error(`API error: ${(error.error || response.statusText)}`)
+      try {
+        const error = await response.json()
+        throw new Error(`API error: ${(error.error || response.statusText)}`)
+      } catch (error) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
     }
   }
 }
