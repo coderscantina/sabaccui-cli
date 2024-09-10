@@ -27,6 +27,11 @@ export interface LoginPayload {
   password: string
 }
 
+export interface RegisterPayload {
+  email: string
+  password: string
+}
+
 export interface ComponentListResponse {
   data: ComponentResource[]
 }

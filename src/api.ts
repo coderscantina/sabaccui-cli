@@ -1,5 +1,5 @@
 import credentials from './utils/credentials'
-import { ComponentListResponse, LoginPayload, TemplateListResponse, TokenResponse } from './types'
+import { ComponentListResponse, LoginPayload, RegisterPayload, TemplateListResponse, TokenResponse } from './types'
 import fs from 'fs'
 import path from 'path'
 import { dirname } from 'node:path'
@@ -38,6 +38,17 @@ async function handleError(response: Response, type: string | null = null, key: 
       throw new Error('Authentication failed. Please check your Login.')
     } else if (response.status === 403) {
       throw new Error('Access denied. Please check for a valid license.')
+    } else if (response.status === 422) {
+      const error = await response.json()
+
+      if (error.errors) {
+        const messages = Object.entries(error.errors).map(([key, value]) => {
+          return `${key}: ${value.join(', ')}`
+        })
+        throw new Error(`API error: ` + messages.join(', '))
+      }
+
+      throw new Error(`API error: ${response.statusText}`)
     } else if (response.status === 404) {
       if (type && key) {
         throw new Error(`${type} with key "${key}" not found.`)
@@ -59,6 +70,7 @@ class API {
     const response = await fetch(`${DOMAIN}/auth/v1/token`, {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         'User-Agent': `sabaccui-cli/${pkg.version}`
       },
@@ -78,6 +90,27 @@ class API {
       body: JSON.stringify({ _method: 'DELETE' })
     })
 
+
+    try {
+      await handleError(response)
+    } catch (error) {
+      console.error(chalk.red('✖'), error.message)
+      return false
+    }
+
+    return true
+  }
+
+  async register(input: RegisterPayload) {
+    const response = await fetch(`${DOMAIN}/auth/v1/register`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': `sabaccui-cli/${pkg.version}`
+      },
+      body: JSON.stringify(input)
+    })
 
     try {
       await handleError(response)

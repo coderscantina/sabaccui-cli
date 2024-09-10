@@ -1,4 +1,4 @@
-import { LoginPayload } from '../types'
+import { LoginPayload, RegisterPayload } from '../types'
 import credentials from '../utils/credentials'
 import BaseService from './BaseService'
 
@@ -17,6 +17,10 @@ class Service extends BaseService{
 
   async license(input: { license: string }) {
     return await this.api.license(input.license)
+  }
+
+  async register(input: RegisterPayload) {
+    return await this.api.register(input)
   }
 }
 

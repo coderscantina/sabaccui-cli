@@ -32,9 +32,11 @@ program.addHelpText('beforeAll', chalk.magentaBright(figlet.textSync('SabaccUI')
   })
   .version(pkg.version)
 
-program.command('login')
-  .description('login to SabaccUI')
+
+program.command('register')
+  .description('register a new account with SabaccUI')
   .action(async () => {
+    let password = null
     const content = await inquirer.prompt([
       {
         type: 'input',
@@ -49,6 +51,47 @@ program.command('login')
           }
           return 'Please enter a valid email address'
         }
+      },
+      {
+        type: 'password',
+        name: 'password',
+        message: 'Enter a Password:',
+        validate: function (value) {
+          if (value.length) {
+            password = value
+            return true
+          }
+          return 'Please enter a valid password'
+        }
+      },
+      {
+        type: 'password',
+        name: 'password_confirmation',
+        message: 'Confirm your password:',
+        validate: function (value) {
+          if (value === password) {
+            return true
+          }
+          return 'Passwords do not match'
+        }
+      }
+    ])
+
+    if (await (new Service()).register(content)) {
+      console.log(chalk.green('✓') + ' Registered successfully! Please login to continue.')
+    } else {
+      console.error(chalk.red('✖') + ' An error occurred when registering the user')
+    }
+  })
+
+program.command('login')
+  .description('login to SabaccUI')
+  .action(async () => {
+    const content = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'email',
+        message: 'email address:'
       },
       {
         type: 'password',
