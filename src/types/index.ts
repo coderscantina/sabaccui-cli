@@ -4,7 +4,18 @@ export interface TokenResponse {
   expires_in: number
 }
 
+export interface BlokResource {
+  id: string
+  key: string
+  name: string
+  description: string
+  type: string
+  version: string
+  updated_at: string
+}
+
 export interface ComponentResource {
+  id: string
   key: string
   name: string
   description: string
@@ -15,6 +26,7 @@ export interface ComponentResource {
 }
 
 export interface TemplateResource {
+  id: string
   key: string
   name: string
   description: string
@@ -34,6 +46,9 @@ export interface RegisterPayload {
 
 export interface ComponentListResponse {
   data: ComponentResource[]
+}
+export interface BlokListResponse {
+  data: BlokResource[]
 }
 
 export interface TemplateListResponse {
