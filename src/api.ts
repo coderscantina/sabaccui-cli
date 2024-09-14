@@ -1,5 +1,12 @@
 import credentials from './utils/credentials'
-import { ComponentListResponse, LoginPayload, RegisterPayload, TemplateListResponse, TokenResponse } from './types'
+import {
+  BlokListResponse,
+  ComponentListResponse,
+  LoginPayload,
+  RegisterPayload,
+  TemplateListResponse,
+  TokenResponse
+} from './types'
 import fs from 'fs'
 import path from 'path'
 import { dirname } from 'node:path'
@@ -137,6 +144,17 @@ class API {
     }
 
     return true
+  }
+
+  async getBloks() {
+    const response = await fetch(`${DOMAIN}/api/v1/bloks`, {
+      headers: getHeaders()
+    })
+
+    await handleError(response)
+
+    const data: BlokListResponse = await response.json()
+    return data
   }
 
   async getComponents() {

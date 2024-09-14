@@ -9,7 +9,7 @@ import ora from 'ora'
 class BlokService extends BaseService {
   async list() {
     try {
-      const { data } = await this.api.getComponents()
+      const { data } = await this.api.getBloks()
       return data
     } catch (error) {
       console.error(chalk.red('✖'), error.message)
