@@ -78,7 +78,8 @@ program.command('register')
     ])
 
     if (await (new Service()).register(content)) {
-      console.log(chalk.green('✓') + ' Registered successfully! Please login to continue.')
+      console.log(chalk.green('✓') + ' Registered successfully! You will be logged in automatically.')
+      await (new Service()).login(content)
     } else {
       console.error(chalk.red('✖') + ' An error occurred when registering the user')
     }
