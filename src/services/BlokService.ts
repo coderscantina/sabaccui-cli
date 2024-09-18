@@ -33,7 +33,7 @@ class BlokService extends BaseService {
         throw new Error('No space provided. Check your config file or provide a space id.')
       }
 
-      const zipBuffer = await this.api.downloadComponent(key)
+      const zipBuffer = await this.api.downloadBlok(key)
       const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'))
 
       spinner.succeed(`Blok ${key} downloaded.`)
@@ -71,7 +71,7 @@ class BlokService extends BaseService {
 
       spinner.succeed(`Blok ${key} added.`)
     } catch (error) {
-      console.error(chalk.red('X'), error.message)
+      spinner.fail(error.message)
     }
   }
 }

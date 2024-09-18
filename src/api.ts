@@ -179,6 +179,17 @@ class API {
     return Buffer.from(arrayBuffer)
   }
 
+  async downloadBlok(key: string): Promise<Buffer> {
+    const response = await fetch(`${DOMAIN}/api/v1/bloks/${key}/download`, {
+      headers: getHeaders()
+    })
+
+    await handleError(response, 'Blok', key)
+
+    const arrayBuffer = await response.arrayBuffer()
+    return Buffer.from(arrayBuffer)
+  }
+
   async getTemplates() {
     const response = await fetch(`${DOMAIN}/api/v1/templates`, {
       headers: getHeaders()
