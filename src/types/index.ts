@@ -61,4 +61,5 @@ export interface ConfigFile {
   space?: string
   domain?: string
   storyblokToken?: string
+  storyblokOAuthToken?: string
 }
