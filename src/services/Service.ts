@@ -5,7 +5,10 @@ import BaseService from './BaseService'
 class Service extends BaseService{
   async login(input: LoginPayload) {
     const data = await this.api.login(input)
-    credentials.set(input.email, data.access_token)
+    credentials.set({
+      login: input.email,
+      password: data.access_token
+    })
 
     return true
   }

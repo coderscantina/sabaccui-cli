@@ -11,6 +11,7 @@ import util from 'util'
 import { ConfigFile } from '../types'
 import BaseService from './BaseService'
 import BlokService from './BlokService'
+import credentials from '../utils/credentials'
 
 const execPromise = util.promisify(exec)
 
@@ -33,6 +34,8 @@ class TemplateService extends BaseService {
 
   async askSetup(defaults?: ConfigFile): Promise<ConfigFile> {
     let space = defaults?.space
+    const { password: oAuthToken } = credentials.get('sabaccui.storyblok.com')
+    const hasOAuthToken = !!oAuthToken
 
     // @ts-ignore
     return await inquirer.prompt([
@@ -65,12 +68,32 @@ class TemplateService extends BaseService {
       },
       {
         type: 'password',
+        name: 'storyblokOAuthToken',
+        message() {
+          if (hasOAuthToken) {
+            return 'Update your Storyblok OAuth:'
+          }
+          exec(`open https://app.storyblok.com/#/me/account?tab=token`)
+          return 'Enter your Storyblok OAuth:'
+        },
+        required: !hasOAuthToken,
+        filter: function (value: string) {
+          return value.length ? value : oAuthToken
+        },
+        validate: function (value: string) {
+          if (hasOAuthToken || value.length) {
+            return true
+          }
+          return `Visit https://app.storyblok.com/#/me/account?tab=token to create an OAuth token`
+        }
+      },
+      {
+        type: 'password',
         name: 'storyblokToken',
         message() {
           exec(`open https://app.storyblok.com/#/me/spaces/${space}/settings?tab=api`)
           return 'Enter your Storyblok access token:'
         },
-        required: true,
         validate: function (value: string) {
           if (value.length) {
             return true
@@ -129,7 +152,9 @@ class TemplateService extends BaseService {
       this.output(chalk.green('✔') + ' SSL certificates configured.')
     }
 
+    credentials.set({ password: data.storyblokOAuthToken }, 'sabaccui.storyblok.com')
     delete data.storyblokToken
+    delete data.storyblokOAuthToken
 
     const configFile = path.join(destination, 'sabaccui.config.json')
     await fs.writeJSON(configFile, data, { spaces: 2 })
