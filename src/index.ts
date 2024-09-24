@@ -17,6 +17,7 @@ import BlokService from './services/BlokService.js'
 
 import { Config } from './config.js'
 import { exec } from 'child_process'
+import ProjectConfig from './utils/projectConfig'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
@@ -181,15 +182,18 @@ program.command('init')
   .option('-p, --path <path>', 'Path of the project')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
   .action(async (name, template, options) => {
-    await new TemplateService().init(name, template, options.path || process.cwd(), options.space)
+    const dir = options.path || process.cwd()
+    await new TemplateService().init(name, template, dir, options.space)
   })
 
 program.command('setup')
   .description('setup a SabaccUI based project in the given directory')
   .option('-p, --path <path>', 'Path of the project')
   .action(async (options) => {
-    const name = path.basename(options.path || process.cwd())
-    await new TemplateService().setup(options.path || process.cwd(), { name })
+    const dir = options.path || process.cwd()
+    await ProjectConfig.init(dir)
+    const name = path.basename(dir)
+    await new TemplateService().setup(dir, { name })
   })
 
 program.command('templates')
@@ -215,8 +219,10 @@ program.command('add')
   .description('add a new blok to the project')
   .option('-p, --path <path>', 'Path of the project to add the blok to')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
-  .action((blok, options) => {
-    new BlokService().add(options.path || process.cwd(), blok, options.space)
+  .action(async (blok, options) => {
+    const dir = options.path || process.cwd()
+    await ProjectConfig.init(dir)
+    await new BlokService().add(dir, blok, options.space)
   })
 
 program.parse(process.argv)

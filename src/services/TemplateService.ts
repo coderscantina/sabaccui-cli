@@ -12,6 +12,7 @@ import { ConfigFile } from '../types'
 import BaseService from './BaseService'
 import BlokService from './BlokService'
 import credentials from '../utils/credentials'
+import ProjectConfig from '../utils/projectConfig'
 
 const execPromise = util.promisify(exec)
 
@@ -111,8 +112,9 @@ class TemplateService extends BaseService {
 
   async setup(destination: string, input?: ConfigFile): Promise<ConfigFile> {
     this.output(chalk.blue('ℹ') + ' Setting up project...')
-
-    const data = await this.askSetup(input)
+    await ProjectConfig.load()
+    const config = ProjectConfig.get()
+    const data = await this.askSetup({...input, ...config})
     data.version = '1.0.0'
 
     if (data.storyblokToken) {
@@ -156,8 +158,8 @@ class TemplateService extends BaseService {
     delete data.storyblokToken
     delete data.storyblokOAuthToken
 
-    const configFile = path.join(destination, 'sabaccui.config.json')
-    await fs.writeJSON(configFile, data, { spaces: 2 })
+    ProjectConfig.apply(data)
+    await ProjectConfig.save()
 
     this.output(chalk.green('✔') + ' Project setup successfully.')
 
@@ -167,6 +169,7 @@ class TemplateService extends BaseService {
   async init(name: string, key: string, destination: string, space: string): Promise<void> {
     const spinner = ora('Downloading template...').start()
     const projectDir = path.join(destination, name)
+    await ProjectConfig.init(projectDir)
 
     try {
       const zipBuffer = await this.api.downloadTemplate(key)
@@ -193,7 +196,7 @@ class TemplateService extends BaseService {
       if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
         await fs.copy(envExamplePath, envPath)
       }
-      const config = await this.setup(projectDir, { name, space })
+      const config = await this.setup(projectDir, { name, space, ...ProjectConfig.get() })
 
       spinner.start('Copying template files...')
       await this.copyFiles(tempDir, projectDir, manifest.templateFiles)

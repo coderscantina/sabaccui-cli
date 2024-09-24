@@ -5,6 +5,7 @@ import path from 'path'
 import os from 'os'
 import BaseService from './BaseService'
 import ora from 'ora'
+import ProjectConfig from '../utils/projectConfig'
 
 class BlokService extends BaseService {
   async list() {
@@ -22,8 +23,7 @@ class BlokService extends BaseService {
     })
     spinner.start(`Downloading blok ${key}...`)
 
-    const configFile = path.join(projectDir, 'sabaccui.config.json')
-    const config = await fs.readJSON(configFile)
+    const config = ProjectConfig.get()
     if (!space) {
       space = config.space
     }
