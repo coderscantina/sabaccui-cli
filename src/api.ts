@@ -21,11 +21,12 @@ const pkg = JSON.parse(rawPkg.toString())
 
 function getToken() {
   const creds = credentials.get()
-  if (!creds || !creds.token) {
+
+  if (!creds || !creds.password) {
     throw new Error('Not logged in. Please login first.')
   }
 
-  return creds.token
+  return creds.password
 }
 
 function getHeaders() {

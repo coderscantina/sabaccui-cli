@@ -3,8 +3,6 @@ import fs from 'fs'
 import netrc from 'netrc'
 import os from 'os'
 
-const host = 'sabaccui.com'
-
 const getFile = () => {
   const home = process.env[(/^win/.test(process.platform)) ? 'USERPROFILE' : 'HOME']
   return path.join(home, '.netrc')
@@ -22,7 +20,7 @@ const getNrcFile = () => {
   return obj
 }
 
-const get = function () {
+const get = function (host: string = 'sabaccui.com') {
   const obj = getNrcFile()
 
   if (process.env.SABACCUI_LOGIN && process.env.SABACCUI_TOKEN) {
@@ -33,16 +31,13 @@ const get = function () {
   }
 
   if (Object.hasOwnProperty.call(obj, host)) {
-    return {
-      email: obj[host].login,
-      token: obj[host].password,
-    }
+    return obj[host]
   }
 
   return null
 }
 
-const set = function (email?: string|null, token?: string|null) {
+const set = function (content: {} | null, host: string = 'sabaccui.com') {
   const file = getFile()
   let obj = {}
 
@@ -52,15 +47,12 @@ const set = function (email?: string|null, token?: string|null) {
     obj = {}
   }
 
-  if (email === null) {
+  if (content === null) {
     delete obj[host]
     fs.writeFileSync(file, netrc.format(obj) + os.EOL)
     return null
   } else {
-    obj[host] = {
-      login: email,
-      password: token
-    }
+    obj[host] = content
     fs.writeFileSync(file, netrc.format(obj) + os.EOL)
     return get()
   }
@@ -69,5 +61,5 @@ const set = function (email?: string|null, token?: string|null) {
 export default {
   set: set,
   get: get,
-  clear: () => set(null, null)
+  clear: () => set(null)
 }
