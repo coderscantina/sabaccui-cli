@@ -12,6 +12,7 @@ import { ConfigFile } from '../types'
 import BaseService from './BaseService'
 import BlokService from './BlokService'
 import credentials from '../utils/credentials'
+import Storyblok from '../Storyblok'
 import ProjectConfig from '../utils/projectConfig'
 
 const execPromise = util.promisify(exec)
@@ -197,6 +198,11 @@ class TemplateService extends BaseService {
         await fs.copy(envExamplePath, envPath)
       }
       const config = await this.setup(projectDir, { name, space, ...ProjectConfig.get() })
+
+      spinner.start('Prepare Storyblok space...')
+      const storyblok = new Storyblok(config.space)
+      await storyblok.ensureTags()
+      spinner.succeed('Storyblok space prepared.')
 
       spinner.start('Copying template files...')
       await this.copyFiles(tempDir, projectDir, manifest.templateFiles)

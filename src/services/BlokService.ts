@@ -61,8 +61,13 @@ class BlokService extends BaseService {
 
       if (manifest.storyblokDefinitions) {
         spinner.start('Pushing bloks to Storyblok...')
+        const storyblok = new Storyblok(config.space)
+
         await Promise.all(manifest.storyblokDefinitions.map(async (definitionFile: string) => {
-          await this.pushStoryblokComponent(projectDir, definitionFile, space, spinner)
+          spinner.start(`Pushing ${definitionFile} to Storyblok...`)
+          const block = await fs.readJSON(path.join(projectDir, definitionFile))
+          await storyblok.pushBlock(block.components[0])
+          spinner.succeed(`${definitionFile} pushed to Storyblok.`)
         }))
       }
 
