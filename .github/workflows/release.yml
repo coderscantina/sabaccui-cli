@@ -13,12 +13,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
       - name: Install dependencies
         run: bun
       - name: Build
         run: bun run build
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
-        run: bunx semantic-release
+          NODE_AUTH_TOkEn: ${{ secrets.npm_token }}
+        run: npm publish --provenance --access public
