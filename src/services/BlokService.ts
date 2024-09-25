@@ -24,7 +24,7 @@ class BlokService extends BaseService {
     try {
       const { data } = await this.api.getBloks()
       return data
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('✖'), error.message)
     }
   }
@@ -41,12 +41,12 @@ class BlokService extends BaseService {
       const manifest = await this.readManifest(tempDir);
 
       await this.copyBlokFiles(projectDir, tempDir, manifest, spinner);
-      await this.installPackages(projectDir, manifest.packages, isSilent, spinner);
+      await this.installBlokPackages(projectDir, manifest.packages, isSilent, spinner);
       await this.pushToStoryblok(projectDir, manifest.storyblokDefinitions, space, spinner);
 
       await this.cleanup(tempDir, spinner);
       spinner.succeed(`Blok ${key} added.`);
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail(error.message);
       throw error;
     }
@@ -91,7 +91,7 @@ class BlokService extends BaseService {
     spinner.succeed('Files copied.');
   }
 
-  private async installPackages(
+  private async installBlokPackages(
     projectDir: string,
     packages: Manifest['packages'],
     isSilent: boolean,

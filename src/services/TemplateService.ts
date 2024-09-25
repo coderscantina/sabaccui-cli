@@ -40,7 +40,7 @@ class TemplateService extends BaseService {
     try {
       const { data } = await this.api.getTemplates();
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('✖'), error.message);
       throw error;
     }
@@ -176,12 +176,12 @@ class TemplateService extends BaseService {
       await this.prepareStoryblokSpace(config.space || space, spinner);
       await this.copyTemplateFiles(tempDir, projectDir, manifest.templateFiles, spinner);
       await this.installBloks(projectDir, manifest.usedComponents, config.space || space, spinner);
-      await this.installPackages(projectDir, manifest.packages, spinner);
+      await this.installTemplatePackages(projectDir, manifest.packages, spinner);
       await this.runMigrations(projectDir, manifest.migrations, spinner);
       await this.initGitRepository(projectDir, spinner);
 
       await this.cleanup(tempDir, spinner);
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail(error.message);
       throw error;
     }
@@ -248,7 +248,7 @@ class TemplateService extends BaseService {
     }
   }
 
-  private async installPackages(projectDir: string, packages: Manifest['packages'] | undefined, spinner: Ora): Promise<void> {
+  private async installTemplatePackages(projectDir: string, packages: Manifest['packages'] | undefined, spinner: Ora): Promise<void> {
     spinner.start('Installing packages...');
     if (packages) {
       await this.handlePackages(projectDir, packages);
@@ -290,7 +290,7 @@ class TemplateService extends BaseService {
         verbose: true,
       });
       await emitter.clone(targetDir);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to clone source repository: ${error.message}`);
     }
   }

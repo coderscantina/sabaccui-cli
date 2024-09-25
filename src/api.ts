@@ -54,8 +54,7 @@ class API {
     }
   }
 
-  private async handleResponse<T>(response: Response, type?: string, key?: string): Promise<T>
-  private async handleResponse<Buffer>(response: Response, type?: string, key?: string, asBuffer?: boolean): Promise<Buffer> {
+  private async handleResponse<T>(response: Response, type?: string, key?: string, asBuffer?: boolean): Promise<T> {
     if (!response.ok) {
       const error: ApiError = new Error('API error')
       error.status = response.status
@@ -112,7 +111,7 @@ class API {
         body: JSON.stringify({ _method: 'DELETE' })
       })
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
@@ -126,7 +125,7 @@ class API {
         body: JSON.stringify(input)
       })
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
@@ -139,7 +138,7 @@ class API {
         body: JSON.stringify({ key })
       })
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
