@@ -183,7 +183,6 @@ class TemplateService extends BaseService {
       await this.cleanup(tempDir, spinner);
     } catch (error: any) {
       spinner.fail(error.message);
-      throw error;
     }
   }
 

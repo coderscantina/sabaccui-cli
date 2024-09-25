@@ -31,12 +31,12 @@ class BlokService extends BaseService {
 
   async add(projectDir: string, key: string, space: string, isSilent: boolean = false): Promise<void> {
     const spinner = ora({ isSilent });
-    spinner.start(`Downloading blok ${key}...`);
 
     try {
       space = space || ProjectConfig.get().space;
       this.validateSpace(space);
 
+      spinner.start(`Downloading blok ${key}...`);
       const tempDir = await this.downloadAndExtractBlok(key, spinner);
       const manifest = await this.readManifest(tempDir);
 
@@ -48,7 +48,6 @@ class BlokService extends BaseService {
       spinner.succeed(`Blok ${key} added.`);
     } catch (error: any) {
       spinner.fail(error.message);
-      throw error;
     }
   }
 
