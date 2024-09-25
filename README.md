@@ -121,7 +121,7 @@ sabaccui add <blok-name>
 
 Options:
 - `-p, --path <path>`: Specify the project path
-- '-s, --space <space>`: Specify the Storyblok space ID'
+- `-s, --space <space>`: Specify the Storyblok space ID
 
 ## Examples
 
