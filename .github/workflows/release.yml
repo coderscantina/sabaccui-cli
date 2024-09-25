@@ -8,6 +8,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v3
       - uses: oven-sh/setup-bun@v2
@@ -23,5 +26,5 @@ jobs:
         run: bun run build
       - name: Release
         env:
-          NODE_AUTH_TOkEn: ${{ secrets.npm_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
         run: npm publish --provenance --access public
