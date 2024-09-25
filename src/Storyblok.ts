@@ -5,59 +5,74 @@ import fs from 'fs'
 import path from 'path'
 import ProjectConfig from './utils/projectConfig'
 
-const sourceTags = {
+const SOURCE_TAGS = {
   47877: 'Molecule',
   47874: 'Atom',
   47875: 'Text',
   47878: 'Organism'
-}
+} as const
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
-const pkg = JSON.parse(rawPkg.toString())
 const DOMAIN = process.env.STORYBLOK_API_DOMAIN || 'https://mapi.storyblok.com/v1/'
+
+interface StoryblokResponse {
+  internal_tags?: Array<{ name: string; id: string }>;
+  components?: Array<{ id: string; name: string }>;
+  internal_tag?: { id: string };
+}
+
 export default class Storyblok {
-  space: string
+  private space: string
+  private oauthToken: string
+  private headers: Record<string, string>
 
   constructor(space: string) {
     this.space = space
+    this.oauthToken = credentials.get('sabaccui.storyblok.com').password
+    this.headers = this.getHeaders()
   }
 
-  async request(method, path, body) {
-    const { password: oauthToken } = credentials.get('sabaccui.storyblok.com')
+  private getHeaders(): Record<string, string> {
+    const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8')
+    const pkg = JSON.parse(rawPkg ?? '{}')
 
-    const headers = {
+    return {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': oauthToken,
+      'Authorization': this.oauthToken,
       'User-Agent': `sabaccui-cli/${pkg.version}`
     }
+  }
 
+  private async request<T>(method: string, path: string, body?: object): Promise<T> {
     const response = await fetch(`${DOMAIN}${path}`, {
       method,
       body: body ? JSON.stringify(body) : undefined,
-      headers
+      headers: this.headers
     })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
 
-    return await response.json()
+    return await response.json() as T
   }
 
-  async ensureTags() {
-    // Get tags from Storyblok via API
-    const response = await this.request('GET', `spaces/${this.space}/internal_tags`)
-    const currentTags = response.internal_tags
+  async ensureTags(): Promise<Record<string, string>> {
+    const response = await this.request<StoryblokResponse>('GET', `spaces/${this.space}/internal_tags`)
+    const currentTags = response.internal_tags || []
     const existingTagMap = new Map(currentTags.map(tag => [tag.name, tag.id]))
-    const sourceTagMapping = {}
+    const sourceTagMapping: Record<string, string> = {}
 
-    for (const [sourceTag, tagName] of Object.entries(sourceTags)) {
-      if (!existingTagMap.has(tagName)) {
-        const response = await this.request('POST', `/spaces/${this.space}/internal_tags`, {
+    for (const [sourceTag, tagName] of Object.entries(SOURCE_TAGS)) {
+      if (existingTagMap.has(tagName)) {
+        sourceTagMapping[sourceTag] = existingTagMap.get(tagName) || ''
+      } else {
+        const response = await this.request<StoryblokResponse>('POST', `/spaces/${this.space}/internal_tags`, {
           name: tagName,
           object_type: 'component'
         })
-        sourceTagMapping[sourceTag] = response.internal_tag.id
-      } else {
-        sourceTagMapping[sourceTag] = existingTagMap.get(tagName)
+        sourceTagMapping[sourceTag] = response.internal_tag?.id || ''
       }
     }
 
@@ -67,57 +82,53 @@ export default class Storyblok {
     return sourceTagMapping
   }
 
-  replaceTags(obj, tagMapping) {
+  replaceTags(obj: any, tagMapping: Record<string, string>): any {
     if (Array.isArray(obj)) {
       return obj.map(item => this.replaceTags(item, tagMapping))
     } else if (typeof obj === 'object' && obj !== null) {
-      const newObj = {}
-      for (const [key, value] of Object.entries(obj)) {
-        if (key === 'component_tag_whitelist' || key === 'internal_tag_ids') {
-          newObj[key] = value.map(tag => tagMapping[tag] || tag)
-        } else if (key === 'internal_tags_list') {
-          newObj[key] = value.map(tag => ({
-            ...tag,
-            id: tagMapping[tag.id] || tag.id
-          }))
-        } else {
-          newObj[key] = this.replaceTags(value, tagMapping)
-        }
-      }
-      return newObj
+      return Object.fromEntries(
+        Object.entries(obj).map(([key, value]) => {
+          if (key === 'component_tag_whitelist' || key === 'internal_tag_ids') {
+            return [key, (value as string[]).map(tag => tagMapping[tag] || tag)]
+          } else if (key === 'internal_tags_list') {
+            return [key, (value as Array<{ id: string }>).map(tag => ({
+              ...tag,
+              id: tagMapping[tag.id] || tag.id
+            }))]
+          } else {
+            return [key, this.replaceTags(value, tagMapping)]
+          }
+        })
+      )
     }
     return obj
   }
 
-  async getBlock(name: string) {
-    const response = await this.request('GET', `spaces/${this.space}/components?search=${name}`)
-    return response.components[0] ?? null
+  async getBlock(name: string): Promise<{ id: string; name: string } | null> {
+    const response = await this.request<StoryblokResponse>('GET', `spaces/${this.space}/components?search=${name}`)
+    return response.components?.[0] ?? null
   }
 
-  async pushBlock(definition: Object) {
+  async pushBlock(definition: Record<string, any>): Promise<StoryblokResponse> {
     const block = await this.getBlock(definition.name)
-    if (block) {
-      return this.updateBlock(block.id, definition)
-    }
-
-    return this.createBlock(definition)
+    return block ? this.updateBlock(block.id, definition) : this.createBlock(definition)
   }
 
-  async updateBlock(id: string, definition: Object) {
+  private async updateBlock(id: string, definition: Record<string, any>): Promise<StoryblokResponse> {
+    const tags = await this.getOrEnsureTags()
+    return this.request<StoryblokResponse>('PUT', `spaces/${this.space}/components/${id}`, this.replaceTags(definition, tags))
+  }
+
+  private async createBlock(definition: Record<string, any>): Promise<StoryblokResponse> {
+    const tags = await this.getOrEnsureTags()
+    return this.request<StoryblokResponse>('POST', `spaces/${this.space}/components`, this.replaceTags(definition, tags))
+  }
+
+  private async getOrEnsureTags(): Promise<Record<string, string>> {
     let tags = ProjectConfig.get('tags')
     if (!tags) {
       tags = await this.ensureTags()
     }
-
-    return await this.request('PUT', `spaces/${this.space}/components/${id}`, this.replaceTags(definition, tags))
-  }
-
-  async createBlock(definition: Object) {
-    let tags = ProjectConfig.get('tags')
-    if (!tags) {
-      tags = await this.ensureTags()
-    }
-
-    return await this.request('POST', `spaces/${this.space}/components`, this.replaceTags(definition, tags))
+    return tags
   }
 }

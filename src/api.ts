@@ -14,203 +14,171 @@ import { fileURLToPath } from 'node:url'
 import chalk from 'chalk'
 
 const DOMAIN = process.env.SABACCUI_API_DOMAIN || 'https://www.sabaccui.com'
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
-const pkg = JSON.parse(rawPkg.toString())
 
-function getToken() {
-  const creds = credentials.get()
-
-  if (!creds || !creds.password) {
-    throw new Error('Not logged in. Please login first.')
-  }
-
-  return creds.password
-}
-
-function getHeaders() {
-  const token = getToken()
-
-  return {
-    'Content-Type': 'application/json',
-    'accept': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    'User-Agent': `sabaccui-cli/${pkg.version}`
-  }
-}
-
-async function handleError(response: Response, type: string | null = null, key: string | null = null) {
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication failed. Please check your Login.')
-    } else if (response.status === 403) {
-      throw new Error('Access denied. Please check for a valid license.')
-    } else if (response.status === 422) {
-      const error = await response.json()
-
-      if (error.errors) {
-        const messages = Object.entries(error.errors).map(([key, value]) => {
-          return `${key}: ${value.join(', ')}`
-        })
-        throw new Error(`API error: ` + messages.join(', '))
-      }
-
-      throw new Error(`API error: ${response.statusText}`)
-    } else if (response.status === 404) {
-      if (type && key) {
-        throw new Error(`${type} with key "${key}" not found.`)
-      }
-      throw new Error('Resource not found.')
-    } else {
-      try {
-        const error = await response.json()
-        throw new Error(`API error: ${(error.error || response.statusText)}`)
-      } catch (error) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-    }
-  }
+interface ApiError extends Error {
+  status?: number;
+  errors?: Record<string, string[]>;
 }
 
 class API {
-  async login(input: LoginPayload) {
-    const response = await fetch(`${DOMAIN}/auth/v1/token`, {
+  private headers: Record<string, string>
+
+  constructor() {
+    this.headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': `sabaccui-cli/${this.getVersion()}`
+    }
+  }
+
+  private getVersion(): string {
+    const rawPkg = fs.readFileSync(path.join(__dirname, '../package.json'))
+    const pkg = JSON.parse(rawPkg.toString())
+
+    return pkg.version
+  }
+
+  private getToken(): string {
+    const creds = credentials.get()
+    if (!creds?.password) {
+      throw new Error('Not logged in. Please login first.')
+    }
+    return creds.password
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    return {
+      ...this.headers,
+      'Authorization': `Bearer ${this.getToken()}`
+    }
+  }
+
+  private async handleResponse<T>(response: Response, type?: string, key?: string): Promise<T>
+  private async handleResponse<Buffer>(response: Response, type?: string, key?: string, asBuffer?: boolean): Promise<Buffer> {
+    if (!response.ok) {
+      const error: ApiError = new Error('API error')
+      error.status = response.status
+
+      switch (response.status) {
+        case 401:
+          error.message = 'Authentication failed. Please check your Login.'
+          break
+        case 403:
+          error.message = 'Access denied. Please check for a valid license.'
+          break
+        case 404:
+          error.message = type && key ? `${type} with key "${key}" not found.` : 'Resource not found.'
+          break
+        case 422:
+          const errorData = await response.json()
+          if (errorData.errors) {
+            error.errors = errorData.errors
+            error.message = Object.entries(errorData.errors)
+              .map(([key, value]) => `${key}: ${(value as string[]).join(', ')}`)
+              .join(', ')
+          }
+          break
+        default:
+          error.message = (await response.json()).error || response.statusText
+      }
+
+      throw error
+    }
+
+    return asBuffer ? Buffer.from(await response.arrayBuffer()) : response.json();
+  }
+
+  private async makeRequest<T>(url: string, options: RequestInit = {}, type?: string, key?: string): Promise<T> {
+    const response = await fetch(url, {
+      ...options,
+      headers: options.headers || this.getAuthHeaders()
+    })
+    return this.handleResponse<T>(response, type, key)
+  }
+
+  async login(input: LoginPayload): Promise<TokenResponse> {
+    return this.makeRequest<TokenResponse>(`${DOMAIN}/auth/v1/token`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': `sabaccui-cli/${pkg.version}`
-      },
+      headers: this.headers,
       body: JSON.stringify(input)
     })
-
-    await handleError(response)
-
-    const data: TokenResponse = await response.json()
-    return data
   }
 
-  async logout() {
-    const response = await fetch(`${DOMAIN}/auth/v1/token`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ _method: 'DELETE' })
-    })
-
-
+  async logout(): Promise<boolean> {
     try {
-      await handleError(response)
+      await this.makeRequest(`${DOMAIN}/auth/v1/token`, {
+        method: 'POST',
+        body: JSON.stringify({ _method: 'DELETE' })
+      })
+      return true
     } catch (error) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
-
-    return true
   }
 
-  async register(input: RegisterPayload) {
-    const response = await fetch(`${DOMAIN}/auth/v1/register`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': `sabaccui-cli/${pkg.version}`
-      },
-      body: JSON.stringify(input)
-    })
-
+  async register(input: RegisterPayload): Promise<boolean> {
     try {
-      await handleError(response)
+      await this.makeRequest(`${DOMAIN}/auth/v1/register`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(input)
+      })
+      return true
     } catch (error) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
-
-    return true
   }
 
-  async license(key: string) {
-    const response = await fetch(`${DOMAIN}/api/v1/licenses/activate`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ key })
-    })
-
+  async license(key: string): Promise<boolean> {
     try {
-      await handleError(response)
+      await this.makeRequest(`${DOMAIN}/api/v1/licenses/activate`, {
+        method: 'POST',
+        body: JSON.stringify({ key })
+      })
+      return true
     } catch (error) {
       console.error(chalk.red('✖'), error.message)
       return false
     }
-
-    return true
   }
 
-  async getBloks() {
-    const response = await fetch(`${DOMAIN}/api/v1/bloks`, {
-      headers: getHeaders()
-    })
-
-    await handleError(response)
-
-    const data: BlokListResponse = await response.json()
-    return data
+  async getBloks(): Promise<BlokListResponse> {
+    return this.makeRequest<BlokListResponse>(`${DOMAIN}/api/v1/bloks`)
   }
 
-  async getComponents() {
-    const response = await fetch(`${DOMAIN}/api/v1/components`, {
-      headers: getHeaders()
-    })
-
-    await handleError(response)
-
-    const data: ComponentListResponse = await response.json()
-    return data
+  async getComponents(): Promise<ComponentListResponse> {
+    return this.makeRequest<ComponentListResponse>(`${DOMAIN}/api/v1/components`)
   }
 
   async downloadComponent(key: string): Promise<Buffer> {
     const response = await fetch(`${DOMAIN}/api/v1/components/${key}/download`, {
-      headers: getHeaders()
+      headers: this.getAuthHeaders()
     })
 
-    await handleError(response, 'Component', key)
-
-    const arrayBuffer = await response.arrayBuffer()
-    return Buffer.from(arrayBuffer)
+    return await this.handleResponse<Buffer>(response, 'Component', key, true)
   }
 
   async downloadBlok(key: string): Promise<Buffer> {
     const response = await fetch(`${DOMAIN}/api/v1/bloks/${key}/download`, {
-      headers: getHeaders()
+      headers: this.getAuthHeaders()
     })
 
-    await handleError(response, 'Blok', key)
-
-    const arrayBuffer = await response.arrayBuffer()
-    return Buffer.from(arrayBuffer)
+    return await this.handleResponse<Buffer>(response, 'Blok', key, true)
   }
 
-  async getTemplates() {
-    const response = await fetch(`${DOMAIN}/api/v1/templates`, {
-      headers: getHeaders()
-    })
-
-    await handleError(response)
-
-    const data: TemplateListResponse = await response.json()
-    return data
+  async getTemplates(): Promise<TemplateListResponse> {
+    return this.makeRequest<TemplateListResponse>(`${DOMAIN}/api/v1/templates`)
   }
 
   async downloadTemplate(key: string): Promise<Buffer> {
     const response = await fetch(`${DOMAIN}/api/v1/templates/${key}/download`, {
-      headers: getHeaders()
+      headers: this.getAuthHeaders()
     })
 
-    await handleError(response, 'Template', key)
-
-    const arrayBuffer = await response.arrayBuffer()
-    return Buffer.from(arrayBuffer)
+    return await this.handleResponse<Buffer>(response, 'Template', key, true)
   }
 }
 
