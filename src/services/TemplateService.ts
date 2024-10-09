@@ -47,7 +47,8 @@ class TemplateService extends BaseService {
   }
 
   async askSetup(defaults?: ConfigFile): Promise<ConfigFile> {
-    const { password: oAuthToken } = credentials.get('sabaccui.storyblok.com');
+    const c = credentials.get('sabaccui.storyblok.com');
+    const oAuthToken = c?.password ?? null;
     const hasOAuthToken = !!oAuthToken;
 
     const questions = [
