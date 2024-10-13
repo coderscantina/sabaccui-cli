@@ -25,6 +25,8 @@ interface Manifest {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
   };
+  type: 'source' | 'self-contained';
+  baseDir: string;
   migrations?: string[];
 }
 
@@ -168,15 +170,20 @@ class TemplateService extends BaseService {
     const projectDir = path.join(destination, name);
     await ProjectConfig.init(projectDir);
 
+
     try {
       const tempDir = await this.downloadAndExtractTemplate(key, spinner);
       const manifest = await this.readManifest(tempDir);
 
-      await this.cloneSourceIfNeeded(manifest.source, projectDir, spinner);
+      await this.cloneSourceIfNeeded(manifest, projectDir, spinner);
+      if (manifest.type === 'source' || manifest.type === undefined) {
+        await this.copyTemplateFiles(tempDir, projectDir, manifest.templateFiles, spinner);
+      } else {
+        await this.copyAllFiles(manifest, tempDir, projectDir, spinner);
+      }
       const config = await this.setupEnvironment(projectDir, name, space);
       await this.prepareStoryblokSpace(config.space || space, spinner);
-      await this.copyTemplateFiles(tempDir, projectDir, manifest.templateFiles, spinner);
-      await this.installBloks(projectDir, manifest.usedComponents, config.space || space, spinner);
+      await this.installBloks(projectDir, manifest, config.space || space, spinner);
       await this.installTemplatePackages(projectDir, manifest.packages, spinner);
       await this.runMigrations(projectDir, manifest.migrations, spinner);
       await this.initGitRepository(projectDir, spinner);
@@ -205,10 +212,10 @@ class TemplateService extends BaseService {
     return fs.readJSON(manifestPath);
   }
 
-  private async cloneSourceIfNeeded(source: string | undefined, projectDir: string, spinner: Ora): Promise<void> {
-    if (source) {
+  private async cloneSourceIfNeeded(manifest: Manifest, projectDir: string, spinner: Ora): Promise<void> {
+    if (manifest.source && (manifest.type === 'source' || manifest.type === undefined)) {
       spinner.start('Cloning source repository...');
-      await this.cloneSource(source, projectDir);
+      await this.cloneSource(manifest.source, projectDir);
       spinner.succeed('Source repository cloned.');
     }
   }
@@ -229,18 +236,31 @@ class TemplateService extends BaseService {
     spinner.succeed('Storyblok space prepared.');
   }
 
+  private async copyAllFiles(manifest: Manifest, sourceDir: string, targetDir: string, spinner: Ora): Promise<void> {
+    spinner.start('Copying all template files...');
+    try {
+      const sourceFolder = path.join(sourceDir, manifest.baseDir.split('/').pop());
+      await fs.copy(sourceFolder, targetDir);
+    } catch (error: any) {
+      console.log(error);
+      throw new Error('Failed to copy all template files.');
+    }
+    spinner.succeed('All Template files copied.');
+  }
+
   private async copyTemplateFiles(tempDir: string, projectDir: string, templateFiles: string[] | undefined, spinner: Ora): Promise<void> {
     spinner.start('Copying template files...');
     await this.copyFiles(tempDir, projectDir, templateFiles);
     spinner.succeed('Template files copied.');
   }
 
-  private async installBloks(projectDir: string, usedComponents: string[] | undefined, space: string, spinner: Ora): Promise<void> {
-    if (usedComponents) {
+  private async installBloks(projectDir: string, manifest: Manifest, space: string, spinner: Ora): Promise<void> {
+    if (manifest.usedComponents) {
       spinner.start('Installing Bloks...');
+      const skipInstall = manifest.type === 'self-contained';
       const installedComponents = await Promise.all(
-        usedComponents.map(componentKey =>
-          this.blokService.add(projectDir, componentKey, space, true, true).then(() => componentKey)
+        manifest.usedComponents.map(componentKey =>
+          this.blokService.add(projectDir, componentKey, space, true, skipInstall).then(() => componentKey)
         )
       );
       spinner.succeed(`${installedComponents.length} Bloks installed:`);
