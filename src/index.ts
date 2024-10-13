@@ -219,10 +219,12 @@ program.command('add')
   .description('add a new blok to the project')
   .option('-p, --path <path>', 'Path of the project to add the blok to')
   .option('-s, --space <space>', 'The id of the Storyblok space to use')
+  .option('--skip-storyblok', 'Skip pushing the blok to Storyblok')
+  .option('--skip-install', 'Skip installing the blok packages')
   .action(async (blok, options) => {
     const dir = options.path || process.cwd()
     await ProjectConfig.init(dir)
-    await new BlokService().add(dir, blok, options.space)
+    await new BlokService().add(dir, blok, options.space, false, options.skipInstall, options.skipStoryblok)
   })
 
 program.parse(process.argv)

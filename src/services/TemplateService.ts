@@ -240,7 +240,7 @@ class TemplateService extends BaseService {
       spinner.start('Installing Bloks...');
       const installedComponents = await Promise.all(
         usedComponents.map(componentKey =>
-          this.blokService.add(projectDir, componentKey, space, true).then(() => componentKey)
+          this.blokService.add(projectDir, componentKey, space, true, true).then(() => componentKey)
         )
       );
       spinner.succeed(`${installedComponents.length} Bloks installed:`);

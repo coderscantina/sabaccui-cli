@@ -29,65 +29,69 @@ class BlokService extends BaseService {
     }
   }
 
-  async add(projectDir: string, key: string, space: string, isSilent: boolean = false): Promise<void> {
-    const spinner = ora({ isSilent });
+  async add(projectDir: string, key: string, space: string, isSilent: boolean = false, skipInstall: boolean = false, skipPush: boolean = false): Promise<void> {
+    const spinner = ora({ isSilent })
 
     try {
-      space = space || ProjectConfig.get().space;
-      this.validateSpace(space);
+      space = space || ProjectConfig.get().space
+      this.validateSpace(space)
 
-      spinner.start(`Downloading blok ${key}...`);
-      const tempDir = await this.downloadAndExtractBlok(key, spinner);
-      const manifest = await this.readManifest(tempDir);
+      spinner.start(`Downloading blok ${key}...`)
+      const tempDir = await this.downloadAndExtractBlok(key, spinner)
+      const manifest = await this.readManifest(tempDir)
 
-      await this.copyBlokFiles(projectDir, tempDir, manifest, spinner);
-      await this.installBlokPackages(projectDir, manifest.packages, isSilent, spinner);
-      await this.pushToStoryblok(projectDir, manifest.storyblokDefinitions, space, spinner);
+      if (!skipInstall) {
+        await this.copyBlokFiles(projectDir, tempDir, manifest, spinner)
+        await this.installBlokPackages(projectDir, manifest.packages, isSilent, spinner)
+      }
+      if (!skipPush) {
+        await this.pushToStoryblok(projectDir, manifest.storyblokDefinitions, space, spinner)
+      }
 
-      await this.cleanup(tempDir, spinner);
-      spinner.succeed(`Blok ${key} added.`);
+      await this.cleanup(tempDir, spinner)
+      spinner.succeed(`Blok ${key} added.`)
     } catch (error: any) {
-      spinner.fail(error.message);
+      spinner.fail(error.message)
     }
   }
 
   private validateSpace(space: string): void {
     if (!space) {
-      throw new Error('No space provided. Check your config file or provide a space id.');
+      throw new Error('No space provided. Check your config file or provide a space id.')
     }
   }
 
   private async downloadAndExtractBlok(key: string, spinner: Ora): Promise<string> {
-    const zipBuffer = await this.api.downloadBlok(key);
-    spinner.succeed(`Blok ${key} downloaded.`);
-    spinner.start('Extracting blok...');
+    const zipBuffer = await this.api.downloadBlok(key)
+    spinner.succeed(`Blok ${key} downloaded.`)
+    spinner.start('Extracting blok...')
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'));
-    const zip = new AdmZip(zipBuffer);
-    zip.extractAllTo(tempDir, true);
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'component-'))
+    const zip = new AdmZip(zipBuffer)
+    zip.extractAllTo(tempDir, true)
 
-    spinner.succeed('Blok extracted.');
-    return tempDir;
+    spinner.succeed('Blok extracted.')
+    return tempDir
   }
 
   private async readManifest(tempDir: string): Promise<Manifest> {
-    const manifestPath = path.join(tempDir, 'manifest.json');
-    return await fs.readJSON(manifestPath);
+    const manifestPath = path.join(tempDir, 'manifest.json')
+    return await fs.readJSON(manifestPath)
   }
 
   private async copyBlokFiles(projectDir: string, tempDir: string, manifest: Manifest, spinner: Ora): Promise<void> {
-    spinner.start('Copying files...');
+    spinner.start('Copying files...')
     const filesToCopy = [
       manifest.files,
       manifest.componentFiles,
       manifest.storyblokFiles,
       manifest.storyblokDefinitions
-    ];
+    ]
 
     for (const files of filesToCopy) {
-      await this.copyFiles(tempDir, projectDir, files);
+      await this.copyFiles(tempDir, projectDir, files)
     }
-    spinner.succeed('Files copied.');
+    spinner.succeed('Files copied.')
   }
 
   private async installBlokPackages(
@@ -97,8 +101,8 @@ class BlokService extends BaseService {
     spinner: Ora
   ): Promise<void> {
     if (packages && !isSilent) {
-      spinner.start('Installing packages...');
-      await this.handlePackages(projectDir, packages);
+      spinner.start('Installing packages...')
+      await this.handlePackages(projectDir, packages)
     }
   }
 
