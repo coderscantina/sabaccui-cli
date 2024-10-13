@@ -9,7 +9,8 @@ const SOURCE_TAGS = {
   47877: 'Molecule',
   47874: 'Atom',
   47875: 'Text',
-  47878: 'Organism'
+  47878: 'Organism',
+  50625: 'Menu'
 } as const
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
